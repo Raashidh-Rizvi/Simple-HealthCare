@@ -253,6 +253,9 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
 
   addCareProvider() {
     if (!this.newProvider.name || !this.newProvider.role) return;
+    if (this.newProvider.phoneNumber && !new RegExp('^\\+?[1-9]\\d{1,14}$').test(this.newProvider.phoneNumber)) {
+      return alert('Invalid Phone Number');
+    }
     this.api.createCareProvider(this.newProvider).subscribe({
       next: (data) => {
         this.careProviders = [...this.careProviders, data];
@@ -334,6 +337,11 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   addVitalToConsultation() {
+    if (this.newVital.heartRate && !new RegExp('^\\d{2,3}$').test(this.newVital.heartRate)) return alert('Invalid Heart Rate (e.g. 72)');
+    if (this.newVital.bloodPressure && !new RegExp('^\\d{2,3}/\\d{2,3}$').test(this.newVital.bloodPressure)) return alert('Invalid BP (e.g. 120/80)');
+    if (this.newVital.temperature && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.newVital.temperature)) return alert('Invalid Temp (e.g. 98.6)');
+    if (this.newVital.weight && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.newVital.weight)) return alert('Invalid Weight (e.g. 150)');
+
     if (this.newVital.heartRate || this.newVital.bloodPressure || this.newVital.temperature || this.newVital.weight) {
       this.consultationData.vitals.push({ ...this.newVital });
       this.newVital = { heartRate: '', bloodPressure: '', temperature: '', weight: '' };

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Healthcare.API.Data;
 using Healthcare.API.Models;
@@ -79,6 +80,7 @@ namespace Healthcare.API.Controllers
     {
         public required string Name { get; set; }
         public required string Role { get; set; }
+        [RegularExpression(@"^\+?[1-9]\d{1,14}$", ErrorMessage = "Phone number is not valid")]
         public string? PhoneNumber { get; set; }
     }
 }

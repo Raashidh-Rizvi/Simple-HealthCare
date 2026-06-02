@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Healthcare.API.Data;
 using Healthcare.API.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -41,9 +42,13 @@ namespace Healthcare.API.Controllers
 
         public class VitalDto
         {
+            [RegularExpression(@"^\d{2,3}$", ErrorMessage = "Heart rate must be a valid number")]
             public string? HeartRate { get; set; }
+            [RegularExpression(@"^\d{2,3}\/\d{2,3}$", ErrorMessage = "Blood pressure must be in format SYS/DIA")]
             public string? BloodPressure { get; set; }
+            [RegularExpression(@"^\d{2,3}(\.\d{1,2})?$", ErrorMessage = "Temperature must be a valid number")]
             public string? Temperature { get; set; }
+            [RegularExpression(@"^\d{2,3}(\.\d{1,2})?$", ErrorMessage = "Weight must be a valid number")]
             public string? Weight { get; set; }
         }
 

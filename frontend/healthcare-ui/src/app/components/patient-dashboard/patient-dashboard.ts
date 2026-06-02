@@ -122,6 +122,11 @@ export class PatientDashboardComponent implements OnInit {
   }
 
   submitVitals(appointmentId: number) {
+    if (this.vitalForm.heartRate && !new RegExp('^\\d{2,3}$').test(this.vitalForm.heartRate)) return alert('Invalid Heart Rate (e.g. 72)');
+    if (this.vitalForm.bloodPressure && !new RegExp('^\\d{2,3}/\\d{2,3}$').test(this.vitalForm.bloodPressure)) return alert('Invalid BP (e.g. 120/80)');
+    if (this.vitalForm.temperature && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.vitalForm.temperature)) return alert('Invalid Temp (e.g. 98.6)');
+    if (this.vitalForm.weight && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.vitalForm.weight)) return alert('Invalid Weight (e.g. 150)');
+
     this.api.addVitals(appointmentId, this.vitalForm).subscribe({
       next: () => {
         alert('Vitals saved successfully!');
