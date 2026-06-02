@@ -9,10 +9,10 @@ import { ApiService } from '../../services/api.service';
   imports: [FormsModule, RouterLink],
   template: `
     <div class="flex items-center justify-center mt-8">
-      <div class="glass-card" style="width: 100%; max-width: 400px;">
+      <div class="glass-card w-full" style="max-width: 420px;">
         <div class="text-center mb-6">
-          <h2 style="font-size: 24px; margin-bottom: 8px;">Welcome Back</h2>
-          <p class="form-label">Sign in to your healthcare account</p>
+          <h2 class="mb-2">Welcome Back</h2>
+          <p class="text-muted text-sm">Sign in to your healthcare account</p>
         </div>
 
         <form (ngSubmit)="onLogin()" ngNativeValidate>
@@ -26,10 +26,10 @@ import { ApiService } from '../../services/api.service';
             <input type="password" class="form-control" placeholder="••••••••" [(ngModel)]="password" name="password" required>
           </div>
 
-          <button type="submit" class="btn btn-primary w-full mt-4" style="padding: 12px;">Sign In</button>
+          <button type="submit" class="btn btn-primary w-full mt-6">Sign In</button>
           
-          <div class="text-center mt-4">
-            <a routerLink="/register" style="font-size: 14px; cursor: pointer;">Don't have an account? Register</a>
+          <div class="text-center mt-6">
+            <a routerLink="/register" class="text-sm">Don't have an account? Register</a>
           </div>
         </form>
       </div>

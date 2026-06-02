@@ -67,7 +67,7 @@ namespace Healthcare.API.Controllers
                 DoctorId = dto.DoctorId,
                 PatientId = patient.Id,
                 AppointmentDate = dto.AppointmentDate,
-                Status = "Scheduled",
+                Status = "start",
                 Notes = dto.Notes
             };
 

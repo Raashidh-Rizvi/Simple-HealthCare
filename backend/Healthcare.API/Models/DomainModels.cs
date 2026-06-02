@@ -39,7 +39,7 @@ namespace Healthcare.API.Models
         public int PatientId { get; set; }
         public Patient? Patient { get; set; }
         public DateTime AppointmentDate { get; set; }
-        public required string Status { get; set; } // "Scheduled", "Completed", "Cancelled"
+        public required string Status { get; set; } // "start", "complete", "cancel"
         public string? Notes { get; set; }
 
         public ICollection<Vital> Vitals { get; set; } = new List<Vital>();

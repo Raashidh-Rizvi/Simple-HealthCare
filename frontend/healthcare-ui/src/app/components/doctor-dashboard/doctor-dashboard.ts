@@ -10,29 +10,32 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div *ngIf="!inConsultation" class="glass-card mt-4">
+    <div *ngIf="!inConsultation">
       <div class="flex justify-between items-center mb-6">
-        <h2>Doctor Dashboard</h2>
+        <h2 class="font-bold">Doctor Dashboard</h2>
       </div>
 
-      <div class="flex-col gap-4">
-        <div class="glass-card" style="background: rgba(16, 185, 129, 0.1);">
-          <h3 style="color: var(--secondary)">Scheduled Appointments</h3>
+      <div class="flex-col gap-6">
+        <!-- Appointments -->
+        <div class="glass-card" style="border-top: 4px solid var(--secondary);">
+          <h3 style="color: var(--secondary);" class="mb-4">Scheduled Appointments</h3>
           
-          <div *ngIf="appointments.length === 0" class="mt-4 text-muted">
+          <div *ngIf="appointments.length === 0" class="text-muted mt-2">
             You have 0 scheduled appointments.
           </div>
 
-          <div *ngIf="appointments.length > 0" class="mt-4">
-            <div *ngFor="let apt of appointments" class="glass-card mt-2" style="padding: 12px;">
-              <strong>Patient:</strong> {{ apt.patientName }} <br/>
-              <strong>Date:</strong> {{ apt.appointmentDate | date:'medium' }} <br/>
-              <strong>Status:</strong> {{ apt.status }} <br/>
-              <strong>Notes:</strong> {{ apt.notes || 'None' }} <br/>
+          <div *ngIf="appointments.length > 0" class="grid grid-cols-2 gap-4 mt-2">
+            <div *ngFor="let apt of appointments" class="inner-card">
+              <div class="flex justify-between items-start mb-2">
+                <strong class="text-main" style="font-size: 16px;">{{ apt.patientName }}</strong>
+                <span class="badge" [ngClass]="(apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled') ? 'badge-primary' : 'badge-warning'">{{ apt.status }}</span>
+              </div>
+              <p class="text-sm text-muted mb-1"><strong class="text-main">Date:</strong> {{ apt.appointmentDate | date:'medium' }}</p>
+              <p class="text-sm text-muted mb-3"><strong class="text-main">Notes:</strong> {{ apt.notes || 'None' }}</p>
 
-              <div *ngIf="apt.vitals && apt.vitals.length > 0" class="mt-2 p-2" style="background: rgba(255,255,255,0.05); border-radius: 6px;">
-                <strong>Patient Vitals:</strong>
-                <ul class="list-none pl-0 m-0 text-sm mt-1">
+              <div *ngIf="apt.vitals && apt.vitals.length > 0" class="mt-3 p-3" style="background: rgba(0,0,0,0.2); border-radius: var(--radius-sm);">
+                <strong class="text-sm">Patient Vitals:</strong>
+                <ul class="list-none pl-0 m-0 text-sm mt-1 text-muted">
                   <li *ngIf="apt.vitals[0].heartRate">Heart Rate: {{ apt.vitals[0].heartRate }}</li>
                   <li *ngIf="apt.vitals[0].bloodPressure">BP: {{ apt.vitals[0].bloodPressure }}</li>
                   <li *ngIf="apt.vitals[0].temperature">Temp: {{ apt.vitals[0].temperature }}</li>
@@ -40,35 +43,37 @@ import { Subscription } from 'rxjs';
                 </ul>
               </div>
 
-              <button *ngIf="apt.status === 'Scheduled'" (click)="startConsultation(apt)" class="btn btn-primary mt-4" style="padding: 8px 16px; border-radius: 6px; border: none; background: #3b82f6; color: white; cursor: pointer;">Start Consultation</button>
+              <button *ngIf="apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled'" (click)="startConsultation(apt)" class="btn btn-primary mt-4 w-full">Start Consultation</button>
             </div>
           </div>
         </div>
 
-        <div class="glass-card mt-4" style="background: rgba(59, 130, 246, 0.1);">
-          <h3 style="color: var(--primary)">Care Providers</h3>
-          <div class="flex gap-2 mt-4 flex-wrap">
-            <input type="text" [(ngModel)]="newProvider.name" placeholder="Name" class="form-control" style="width: 200px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-            <input type="text" [(ngModel)]="newProvider.role" placeholder="Role (e.g., Nurse)" class="form-control" style="width: 200px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-            <input type="text" [(ngModel)]="newProvider.phoneNumber" placeholder="Phone (optional)" class="form-control" style="width: 200px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-            <button (click)="addCareProvider()" class="btn btn-primary" style="padding: 8px 16px; border-radius: 6px; border: none; background: #3b82f6; color: white; cursor: pointer;">Add Provider</button>
+        <!-- Care Providers -->
+        <div class="glass-card" style="border-top: 4px solid var(--primary);">
+          <h3 style="color: var(--primary);" class="mb-4">Care Providers</h3>
+          <div class="flex gap-3 mb-4 flex-wrap">
+            <input type="text" name="providerName" [(ngModel)]="newProvider.name" placeholder="Name" class="form-control" style="width: 200px;">
+            <input type="text" name="providerRole" [(ngModel)]="newProvider.role" placeholder="Role (e.g., Nurse)" class="form-control" style="width: 200px;">
+            <input type="text" name="providerPhone" [(ngModel)]="newProvider.phoneNumber" placeholder="Phone (optional)" class="form-control" style="width: 200px;">
+            <button (click)="addCareProvider()" class="btn btn-primary">Add Provider</button>
           </div>
-          <div *ngIf="careProviders.length === 0" class="mt-4 text-muted">No care providers added yet.</div>
-          <div *ngIf="careProviders.length > 0" class="mt-4">
-            <div *ngFor="let provider of careProviders" class="glass-card mt-2 flex justify-between items-center" style="padding: 12px;">
+          <div *ngIf="careProviders.length === 0" class="text-muted text-sm">No care providers added yet.</div>
+          <div *ngIf="careProviders.length > 0" class="grid grid-cols-2 gap-4 mt-4">
+            <div *ngFor="let provider of careProviders" class="inner-card flex justify-between items-center">
               <div>
-                <strong>{{ provider.name }}</strong> ({{ provider.role }}) <br/>
-                <small *ngIf="provider.phoneNumber">{{ provider.phoneNumber }}</small>
+                <strong class="text-main">{{ provider.name }}</strong> <span class="text-muted text-sm">({{ provider.role }})</span> <br/>
+                <small class="text-muted" *ngIf="provider.phoneNumber">{{ provider.phoneNumber }}</small>
               </div>
-              <button (click)="deleteCareProvider(provider.id)" class="btn" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
+              <button (click)="deleteCareProvider(provider.id)" class="btn btn-danger text-xs p-2">Remove</button>
             </div>
           </div>
         </div>
 
-        <div class="glass-card mt-4" style="background: rgba(245, 158, 11, 0.1);">
-          <h3 style="color: #f59e0b">My Schedule Slots</h3>
-          <div class="flex gap-2 mt-4 items-center flex-wrap">
-            <select [(ngModel)]="newSlot.dayOfWeek" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
+        <!-- Schedule Slots -->
+        <div class="glass-card" style="border-top: 4px solid var(--accent);">
+          <h3 style="color: var(--accent);" class="mb-4">My Schedule Slots</h3>
+          <div class="flex gap-3 mb-4 items-center flex-wrap">
+            <select name="slotDay" [(ngModel)]="newSlot.dayOfWeek" class="form-control" style="width: 150px;">
               <option [ngValue]="1" style="color: black;">Monday</option>
               <option [ngValue]="2" style="color: black;">Tuesday</option>
               <option [ngValue]="3" style="color: black;">Wednesday</option>
@@ -77,18 +82,19 @@ import { Subscription } from 'rxjs';
               <option [ngValue]="6" style="color: black;">Saturday</option>
               <option [ngValue]="0" style="color: black;">Sunday</option>
             </select>
-            <input type="time" [(ngModel)]="newSlot.startTime" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-            <span style="color: white;">to</span>
-            <input type="time" [(ngModel)]="newSlot.endTime" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-            <button (click)="addScheduleSlot()" class="btn" style="padding: 8px 16px; border-radius: 6px; border: none; background: #f59e0b; color: white; cursor: pointer;">Add Slot</button>
+            <input type="time" name="slotStart" [(ngModel)]="newSlot.startTime" class="form-control" style="width: 150px;">
+            <span class="text-muted">to</span>
+            <input type="time" name="slotEnd" [(ngModel)]="newSlot.endTime" class="form-control" style="width: 150px;">
+            <button (click)="addScheduleSlot()" class="btn btn-accent">Add Slot</button>
           </div>
-          <div *ngIf="scheduleSlots.length === 0" class="mt-4 text-muted">No schedule slots added yet.</div>
-          <div *ngIf="scheduleSlots.length > 0" class="mt-4">
-            <div *ngFor="let slot of scheduleSlots" class="glass-card mt-2 flex justify-between items-center" style="padding: 12px;">
-              <div>
-                <strong>{{ getDayName(slot.dayOfWeek) }}</strong>: {{ slot.startTime }} - {{ slot.endTime }}
+          <div *ngIf="scheduleSlots.length === 0" class="text-muted text-sm">No schedule slots added yet.</div>
+          <div *ngIf="scheduleSlots.length > 0" class="grid grid-cols-3 gap-4 mt-4">
+            <div *ngFor="let slot of scheduleSlots" class="inner-card flex justify-between items-center">
+              <div class="text-sm">
+                <strong class="text-main">{{ getDayName(slot.dayOfWeek) }}</strong><br>
+                <span class="text-muted">{{ slot.startTime }} - {{ slot.endTime }}</span>
               </div>
-              <button (click)="deleteScheduleSlot(slot.id)" class="btn" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Remove</button>
+              <button (click)="deleteScheduleSlot(slot.id)" class="btn btn-danger text-xs p-2">Remove</button>
             </div>
           </div>
         </div>
@@ -96,68 +102,89 @@ import { Subscription } from 'rxjs';
     </div>
 
     <!-- Consultation View -->
-    <div *ngIf="inConsultation && currentConsultation" class="glass-card mt-4" style="background: rgba(59, 130, 246, 0.15);">
+    <div *ngIf="inConsultation && currentConsultation" class="glass-card mt-4" style="border-top: 4px solid var(--primary);">
       <div class="flex justify-between items-center mb-6">
         <h2>Consultation with {{ currentConsultation.patientName }}</h2>
-        <button (click)="cancelConsultationView()" class="btn btn-secondary" style="padding: 8px 16px; border-radius: 6px; border: none; background: #6b7280; color: white; cursor: pointer;">Back to Dashboard</button>
+        <button (click)="cancelConsultationView()" class="btn btn-outline text-sm">Back to Dashboard</button>
       </div>
 
-      <div class="mt-4">
-        <h4>Status</h4>
-        <select [(ngModel)]="consultationData.status" class="form-control" style="width: 200px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-          <option value="Scheduled" style="color: black;">Scheduled</option>
-          <option value="Completed" style="color: black;">Completed</option>
-          <option value="Cancelled" style="color: black;">Cancelled</option>
-        </select>
-      </div>
+      <div class="grid grid-cols-2 gap-8">
+        <div class="flex-col gap-6">
+          <div>
+            <h4 class="mb-2">Status</h4>
+            <select [(ngModel)]="consultationData.status" class="form-control" style="width: 200px;">
+              <option value="start" style="color: black;">Start</option>
+              <option value="complete" style="color: black;">Complete</option>
+              <option value="cancel" style="color: black;">Cancel</option>
+            </select>
+          </div>
 
-      <div class="mt-4">
-        <h4>Notes (Speech to Text Available)</h4>
-        <div class="flex items-center gap-2 mb-2">
-          <button (click)="toggleSpeech()" class="btn" [ngStyle]="{'background': speechService.isListening ? '#ef4444' : '#10b981', 'color': 'white', 'border': 'none', 'padding': '8px 16px', 'border-radius': '6px', 'cursor': 'pointer'}">
-            {{ speechService.isListening ? '🛑 Stop Listening' : '🎤 Start Speech to Text' }}
-          </button>
+          <div>
+            <h4 class="mb-2">Notes (Speech to Text Available)</h4>
+            <div class="mb-3">
+              <button (click)="toggleSpeech()" class="btn w-full" [ngClass]="speechService.isListening ? 'btn-danger' : 'btn-secondary'">
+                <span *ngIf="speechService.isListening">🛑 Stop Listening</span>
+                <span *ngIf="!speechService.isListening">🎤 Start Speech to Text</span>
+              </button>
+            </div>
+            <textarea [(ngModel)]="consultationData.notes" rows="6" class="form-control w-full"></textarea>
+          </div>
         </div>
-        <textarea [(ngModel)]="consultationData.notes" rows="4" class="form-control w-full" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-family: inherit;"></textarea>
-      </div>
 
-      <div class="mt-4">
-        <h4>Vitals</h4>
-        <div class="flex gap-2 flex-wrap">
-          <input type="text" [(ngModel)]="newVital.heartRate" placeholder="Heart Rate" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-          <input type="text" [(ngModel)]="newVital.bloodPressure" placeholder="BP" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-          <input type="text" [(ngModel)]="newVital.temperature" placeholder="Temp" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-          <input type="text" [(ngModel)]="newVital.weight" placeholder="Weight" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-          <button (click)="addVitalToConsultation()" class="btn" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Add Vital</button>
+        <div class="flex-col gap-6">
+          <div>
+            <h4 class="mb-4">Vitals</h4>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="form-label text-xs">Heart Rate</label>
+                <input type="text" [(ngModel)]="newVital.heartRate" placeholder="e.g. 72" class="form-control">
+              </div>
+              <div>
+                <label class="form-label text-xs">Blood Pressure</label>
+                <input type="text" [(ngModel)]="newVital.bloodPressure" placeholder="e.g. 120/80" class="form-control">
+              </div>
+              <div>
+                <label class="form-label text-xs">Temperature</label>
+                <input type="text" [(ngModel)]="newVital.temperature" placeholder="e.g. 98.6" class="form-control">
+              </div>
+              <div>
+                <label class="form-label text-xs">Weight</label>
+                <input type="text" [(ngModel)]="newVital.weight" placeholder="e.g. 150" class="form-control">
+              </div>
+            </div>
+            <button (click)="addVitalToConsultation()" class="btn btn-primary w-full text-sm mb-3">Add Vital</button>
+            
+            <ul *ngIf="consultationData.vitals.length > 0" class="list-none pl-0 m-0 space-y-2">
+               <li *ngFor="let v of consultationData.vitals; let i = index" class="inner-card flex justify-between items-center p-2 text-sm">
+                  <span>HR: {{ v.heartRate }}, BP: {{ v.bloodPressure }}, Temp: {{ v.temperature }}, Weight: {{ v.weight }}</span>
+                  <button (click)="consultationData.vitals.splice(i, 1)" class="btn btn-danger text-xs p-1" style="min-width: 30px;">X</button>
+               </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 class="mb-2">Orders</h4>
+            <div class="flex gap-2 mb-3">
+              <select [(ngModel)]="newOrder.orderType" class="form-control" style="width: 120px;">
+                <option value="Lab" style="color: black;">Lab Test</option>
+                <option value="Pharmacy" style="color: black;">Pharmacy</option>
+              </select>
+              <input type="text" [(ngModel)]="newOrder.description" placeholder="Description" class="form-control">
+            </div>
+            <button (click)="addOrderToConsultation()" class="btn btn-primary w-full text-sm mb-3">Add Order</button>
+            
+            <ul *ngIf="consultationData.orders.length > 0" class="list-none pl-0 m-0 space-y-2">
+               <li *ngFor="let o of consultationData.orders; let j = index" class="inner-card flex justify-between items-center p-2 text-sm">
+                  <span><strong>{{ o.orderType }}:</strong> {{ o.description }}</span>
+                  <button (click)="consultationData.orders.splice(j, 1)" class="btn btn-danger text-xs p-1" style="min-width: 30px;">X</button>
+               </li>
+            </ul>
+          </div>
         </div>
-        <ul *ngIf="consultationData.vitals.length > 0" class="mt-2 text-sm pl-4" style="color: white;">
-           <li *ngFor="let v of consultationData.vitals; let i = index">
-              HR: {{ v.heartRate }}, BP: {{ v.bloodPressure }}, Temp: {{ v.temperature }}, Weight: {{ v.weight }}
-              <button (click)="consultationData.vitals.splice(i, 1)" style="background: transparent; color: #ef4444; border: none; cursor: pointer; font-weight: bold;">[x]</button>
-           </li>
-        </ul>
       </div>
 
-      <div class="mt-4">
-        <h4>Orders</h4>
-        <div class="flex gap-2 flex-wrap">
-          <select [(ngModel)]="newOrder.orderType" class="form-control" style="width: 150px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-            <option value="Lab" style="color: black;">Lab Test</option>
-            <option value="Pharmacy" style="color: black;">Pharmacy</option>
-          </select>
-          <input type="text" [(ngModel)]="newOrder.description" placeholder="Description (e.g. Blood Test)" class="form-control" style="width: 250px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-          <button (click)="addOrderToConsultation()" class="btn" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Add Order</button>
-        </div>
-        <ul *ngIf="consultationData.orders.length > 0" class="mt-2 text-sm pl-4" style="color: white;">
-           <li *ngFor="let o of consultationData.orders; let j = index">
-              <strong>{{ o.orderType }}:</strong> {{ o.description }}
-              <button (click)="consultationData.orders.splice(j, 1)" style="background: transparent; color: #ef4444; border: none; cursor: pointer; font-weight: bold;">[x]</button>
-           </li>
-        </ul>
-      </div>
-
-      <div class="mt-6 flex justify-end">
-        <button (click)="saveConsultation()" class="btn" style="background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">Save Consultation</button>
+      <div class="mt-8 flex justify-end">
+        <button (click)="saveConsultation()" class="btn btn-secondary" style="padding: 12px 32px;">Save Consultation</button>
       </div>
     </div>
   `,
@@ -175,7 +202,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   inConsultation = false;
   currentConsultation: any = null;
   consultationData: any = {
-    status: 'Scheduled',
+    status: 'start',
     notes: '',
     vitals: [],
     orders: []
@@ -228,7 +255,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     if (!this.newProvider.name || !this.newProvider.role) return;
     this.api.createCareProvider(this.newProvider).subscribe({
       next: (data) => {
-        this.careProviders.push(data);
+        this.careProviders = [...this.careProviders, data];
         this.newProvider = { name: '', role: '', phoneNumber: '' };
       },
       error: (err) => console.error('Failed to add care provider', err)
@@ -257,7 +284,10 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       endTime: this.newSlot.endTime.length === 5 ? this.newSlot.endTime + ':00' : this.newSlot.endTime
     };
     this.api.createScheduleSlot(slotPayload).subscribe({
-      next: (data) => this.scheduleSlots.push(data),
+      next: (data) => {
+        this.scheduleSlots = [...this.scheduleSlots, data];
+        this.newSlot = { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true };
+      },
       error: (err) => console.error('Failed to add schedule slot', err)
     });
   }
@@ -279,7 +309,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   startConsultation(apt: any) {
     this.currentConsultation = apt;
     this.consultationData = {
-      status: apt.status || 'Scheduled',
+      status: apt.status || 'start',
       notes: apt.notes || '',
       vitals: [],
       orders: []

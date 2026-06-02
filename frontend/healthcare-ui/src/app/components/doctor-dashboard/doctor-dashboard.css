@@ -1,0 +1,19 @@
+.inner-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.inner-card:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Also remove glass-card from sections if needed, but let's just make section-card */
+.section-card {
+  background: var(--surface);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}

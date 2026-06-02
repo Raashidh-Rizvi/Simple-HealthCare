@@ -9,33 +9,33 @@ import { ApiService } from '../../services/api.service';
   standalone: true,
   imports: [RouterModule, CommonModule, FormsModule],
   template: `
-    <div class="glass-card mt-4">
+    <div class="glass-card" style="max-width: 600px; margin: 0 auto; border-top: 4px solid var(--primary);">
       <div class="flex justify-between items-center mb-6">
-        <h2>Book Appointment</h2>
-        <a routerLink="/patient" class="btn btn-outline" style="border: 1px solid #ccc; padding: 8px 16px; border-radius: 6px; text-decoration: none; color: inherit;">Back to Dashboard</a>
+        <h2 class="font-bold">Book Appointment</h2>
+        <a routerLink="/patient" class="btn btn-outline text-sm">Back to Dashboard</a>
       </div>
       
-      <form (ngSubmit)="onBook()" class="mt-4">
-        <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label" style="display: block; margin-bottom: 8px;">Select Doctor</label>
-          <select class="form-control" [(ngModel)]="selectedDoctorId" name="doctorId" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
-            <option *ngFor="let doc of doctors" [value]="doc.id">
+      <form (ngSubmit)="onBook()" class="mt-6">
+        <div class="form-group mb-4">
+          <label class="form-label">Select Doctor</label>
+          <select class="form-control" [(ngModel)]="selectedDoctorId" name="doctorId" required>
+            <option *ngFor="let doc of doctors" [value]="doc.id" style="color: black;">
               Dr. {{ doc.firstName }} {{ doc.lastName }} - {{ doc.specialization }}
             </option>
           </select>
         </div>
 
-        <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label" style="display: block; margin-bottom: 8px;">Date & Time</label>
-          <input type="datetime-local" class="form-control" [(ngModel)]="appointmentDate" name="appointmentDate" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+        <div class="form-group mb-4">
+          <label class="form-label">Date & Time</label>
+          <input type="datetime-local" class="form-control" [(ngModel)]="appointmentDate" name="appointmentDate" required>
         </div>
 
-        <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label" style="display: block; margin-bottom: 8px;">Notes</label>
-          <textarea class="form-control" [(ngModel)]="notes" name="notes" rows="3" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;"></textarea>
+        <div class="form-group mb-6">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" [(ngModel)]="notes" name="notes" rows="4" placeholder="Any specific symptoms or reasons for visit?"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Book Now</button>
+        <button type="submit" class="btn btn-primary w-full">Book Appointment</button>
       </form>
     </div>
   `,

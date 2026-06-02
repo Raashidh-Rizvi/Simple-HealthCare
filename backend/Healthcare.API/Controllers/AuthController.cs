@@ -40,7 +40,8 @@ namespace Healthcare.API.Controllers
         {
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email)) return BadRequest(new { message = "Email already in use" });
 
-            var user = new User { Email = dto.Email, PasswordHash = dto.Password, Role = dto.Role, FirstName = dto.FirstName, LastName = dto.LastName };
+            var userRole = dto.Role.ToLower() == "doctor" ? "Doctor" : "Patient";
+            var user = new User { Email = dto.Email, PasswordHash = dto.Password, Role = userRole, FirstName = dto.FirstName, LastName = dto.LastName };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
