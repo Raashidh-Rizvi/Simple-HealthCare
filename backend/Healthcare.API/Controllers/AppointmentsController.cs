@@ -31,6 +31,28 @@ namespace Healthcare.API.Controllers
             public required string Status { get; set; }
         }
 
+        public class ConsultationDataDto
+        {
+            public required string Status { get; set; }
+            public string? Notes { get; set; }
+            public List<VitalDto>? Vitals { get; set; }
+            public List<OrderDto>? Orders { get; set; }
+        }
+
+        public class VitalDto
+        {
+            public string? HeartRate { get; set; }
+            public string? BloodPressure { get; set; }
+            public string? Temperature { get; set; }
+            public string? Weight { get; set; }
+        }
+
+        public class OrderDto
+        {
+            public required string OrderType { get; set; }
+            public required string Description { get; set; }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentDto dto)
         {
@@ -72,6 +94,7 @@ namespace Healthcare.API.Controllers
                 var appointments = await _context.Appointments
                     .Include(a => a.Patient)
                     .ThenInclude(p => p!.User)
+                    .Include(a => a.Vitals)
                     .Where(a => a.DoctorId == doctor.Id)
                     .OrderBy(a => a.AppointmentDate)
                     .Select(a => new
@@ -80,7 +103,8 @@ namespace Healthcare.API.Controllers
                         a.AppointmentDate,
                         a.Status,
                         a.Notes,
-                        PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName
+                        PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
+                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).ToList()
                     })
                     .ToListAsync();
                 
@@ -94,6 +118,7 @@ namespace Healthcare.API.Controllers
                 var appointments = await _context.Appointments
                     .Include(a => a.Doctor)
                     .ThenInclude(d => d!.User)
+                    .Include(a => a.Vitals)
                     .Where(a => a.PatientId == patient.Id)
                     .OrderBy(a => a.AppointmentDate)
                     .Select(a => new
@@ -103,7 +128,8 @@ namespace Healthcare.API.Controllers
                         a.Status,
                         a.Notes,
                         DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
-                        Specialization = a.Doctor.Specialization
+                        Specialization = a.Doctor.Specialization,
+                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).ToList()
                     })
                     .ToListAsync();
 
@@ -123,6 +149,76 @@ namespace Healthcare.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Status updated" });
+        }
+
+        [HttpPost("{id}/consultation")]
+        public async Task<IActionResult> SaveConsultation(int id, [FromBody] ConsultationDataDto dto)
+        {
+            var appointment = await _context.Appointments
+                .Include(a => a.Vitals)
+                .Include(a => a.Orders)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (appointment == null) return NotFound();
+
+            appointment.Status = dto.Status;
+            appointment.Notes = dto.Notes;
+
+            if (dto.Vitals != null && dto.Vitals.Any())
+            {
+                foreach (var v in dto.Vitals)
+                {
+                    appointment.Vitals.Add(new Vital
+                    {
+                        HeartRate = v.HeartRate,
+                        BloodPressure = v.BloodPressure,
+                        Temperature = v.Temperature,
+                        Weight = v.Weight,
+                        RecordedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            if (dto.Orders != null && dto.Orders.Any())
+            {
+                foreach (var o in dto.Orders)
+                {
+                    appointment.Orders.Add(new Order
+                    {
+                        OrderType = o.OrderType,
+                        Description = o.Description,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Consultation saved successfully" });
+        }
+
+        [HttpPost("{id}/vitals")]
+        public async Task<IActionResult> AddVitals(int id, [FromBody] VitalDto dto)
+        {
+            var appointment = await _context.Appointments
+                .Include(a => a.Vitals)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (appointment == null) return NotFound();
+
+            var vital = new Vital
+            {
+                HeartRate = dto.HeartRate,
+                BloodPressure = dto.BloodPressure,
+                Temperature = dto.Temperature,
+                Weight = dto.Weight,
+                RecordedAt = DateTime.UtcNow
+            };
+            
+            appointment.Vitals.Add(vital);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Vitals added successfully", vital });
         }
     }
 }
