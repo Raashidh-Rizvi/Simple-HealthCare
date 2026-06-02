@@ -43,6 +43,20 @@ namespace Healthcare.API.Controllers
             var user = new User { Email = dto.Email, PasswordHash = dto.Password, Role = dto.Role, FirstName = dto.FirstName, LastName = dto.LastName };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
+            if (dto.Role.ToLower() == "doctor")
+            {
+                var doctor = new Doctor { UserId = user.Id, Specialization = "General" };
+                _context.Doctors.Add(doctor);
+                await _context.SaveChangesAsync();
+            }
+            else if (dto.Role.ToLower() == "patient")
+            {
+                var patient = new Patient { UserId = user.Id, DateOfBirth = DateTime.UtcNow.Date };
+                _context.Patients.Add(patient);
+                await _context.SaveChangesAsync();
+            }
+
             return Ok(new { message = "User registered successfully" });
         }
 

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login';
+import { RegisterComponent } from './components/register/register';
 import { DoctorDashboardComponent } from './components/doctor-dashboard/doctor-dashboard';
 import { PatientDashboardComponent } from './components/patient-dashboard/patient-dashboard';
 import { AppointmentBookingComponent } from './components/appointment-booking/appointment-booking';
@@ -7,6 +8,7 @@ import { AppointmentBookingComponent } from './components/appointment-booking/ap
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
   { path: 'doctor', component: DoctorDashboardComponent },
   { path: 'patient', component: PatientDashboardComponent },
   { path: 'patient/book', component: AppointmentBookingComponent },

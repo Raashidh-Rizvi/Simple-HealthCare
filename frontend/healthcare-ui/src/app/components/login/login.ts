@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   template: `
     <div class="flex items-center justify-center mt-8">
       <div class="glass-card" style="width: 100%; max-width: 400px;">
@@ -14,7 +15,7 @@ import { Router } from '@angular/router';
           <p class="form-label">Sign in to your healthcare account</p>
         </div>
 
-        <form (ngSubmit)="onLogin()">
+        <form (ngSubmit)="onLogin()" ngNativeValidate>
           <div class="form-group">
             <label class="form-label">Email Address</label>
             <input type="email" class="form-control" placeholder="doctor@example.com" [(ngModel)]="email" name="email" required>
@@ -28,7 +29,7 @@ import { Router } from '@angular/router';
           <button type="submit" class="btn btn-primary w-full mt-4" style="padding: 12px;">Sign In</button>
           
           <div class="text-center mt-4">
-            <a href="#" style="font-size: 14px;">Don't have an account? Register</a>
+            <a routerLink="/register" style="font-size: 14px; cursor: pointer;">Don't have an account? Register</a>
           </div>
         </form>
       </div>
@@ -40,14 +41,27 @@ export class LoginComponent {
   email = '';
   password = '';
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private api: ApiService) {}
 
   onLogin() {
-    // Basic mock logic for now, later connect to backend API
-    if (this.email.includes('doctor')) {
-      this.router.navigate(['/doctor']);
-    } else {
-      this.router.navigate(['/patient']);
+    if (!this.email || !this.password) {
+      alert('Please enter email and password.');
+      return;
     }
+
+    this.api.login({ email: this.email, password: this.password }).subscribe({
+      next: (res) => {
+        localStorage.setItem('token', res.token);
+        if (res.role.toLowerCase() === 'doctor') {
+          this.router.navigate(['/doctor']);
+        } else {
+          this.router.navigate(['/patient']);
+        }
+      },
+      error: (err) => {
+        alert('Login failed: ' + (err.error?.message || err.message));
+      }
+    });
   }
 }
+
