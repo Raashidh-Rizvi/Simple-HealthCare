@@ -19,20 +19,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.login(
+    final errorMsg = await authProvider.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
 
-    if (success && mounted) {
+    if (errorMsg == null && mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Login failed. Please check credentials.')),
+        SnackBar(
+          content: Text(errorMsg ?? 'Login failed. Please check credentials.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -42,58 +45,89 @@ class _LoginScreenState extends State<LoginScreen> {
     final isLoading = Provider.of<AuthProvider>(context).isLoading;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 60),
-              Icon(
-                Icons.favorite_rounded,
-                size: 80,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Welcome Back',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFE3F2FD), Color(0xFFF3F4F6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Container(
+                padding: const EdgeInsets.all(32.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        size: 64,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Welcome Back',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sign in to your patient portal',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    CustomTextField(
+                      controller: _emailController,
+                      hintText: 'Email Address',
+                      icon: Icons.email_outlined,
+                    ),
+                    const SizedBox(height: 20),
+                    CustomTextField(
+                      controller: _passwordController,
+                      hintText: 'Password',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                    ),
+                    const SizedBox(height: 40),
+                    PrimaryButton(
+                      text: 'Sign In',
+                      onPressed: _login,
+                      isLoading: isLoading,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Sign in to your patient portal',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textLight,
-                ),
-              ),
-              const SizedBox(height: 48),
-              CustomTextField(
-                controller: _emailController,
-                hintText: 'Email',
-                icon: Icons.email_outlined,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: _passwordController,
-                hintText: 'Password',
-                icon: Icons.lock_outline,
-                isPassword: true,
-              ),
-              const SizedBox(height: 32),
-              PrimaryButton(
-                text: 'Sign In',
-                onPressed: _login,
-                isLoading: isLoading,
-              ),
-            ],
+            ),
           ),
         ),
       ),

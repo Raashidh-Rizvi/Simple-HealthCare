@@ -100,6 +100,7 @@ namespace Healthcare.API.Controllers
                     .Include(a => a.Patient)
                     .ThenInclude(p => p!.User)
                     .Include(a => a.Vitals)
+                    .Include(a => a.Orders)
                     .Where(a => a.DoctorId == doctor.Id)
                     .OrderBy(a => a.AppointmentDate)
                     .Select(a => new
@@ -109,7 +110,22 @@ namespace Healthcare.API.Controllers
                         a.Status,
                         a.Notes,
                         PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
-                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).ToList()
+                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).Select(v => new
+                        {
+                            v.Id,
+                            v.HeartRate,
+                            v.BloodPressure,
+                            v.Temperature,
+                            v.Weight,
+                            v.RecordedAt
+                        }).ToList(),
+                        Orders = a.Orders.OrderByDescending(o => o.CreatedAt).Select(o => new
+                        {
+                            o.Id,
+                            o.OrderType,
+                            o.Description,
+                            o.CreatedAt
+                        }).ToList()
                     })
                     .ToListAsync();
                 
@@ -124,6 +140,7 @@ namespace Healthcare.API.Controllers
                     .Include(a => a.Doctor)
                     .ThenInclude(d => d!.User)
                     .Include(a => a.Vitals)
+                    .Include(a => a.Orders)
                     .Where(a => a.PatientId == patient.Id)
                     .OrderBy(a => a.AppointmentDate)
                     .Select(a => new
@@ -134,7 +151,22 @@ namespace Healthcare.API.Controllers
                         a.Notes,
                         DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
                         Specialization = a.Doctor.Specialization,
-                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).ToList()
+                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).Select(v => new
+                        {
+                            v.Id,
+                            v.HeartRate,
+                            v.BloodPressure,
+                            v.Temperature,
+                            v.Weight,
+                            v.RecordedAt
+                        }).ToList(),
+                        Orders = a.Orders.OrderByDescending(o => o.CreatedAt).Select(o => new
+                        {
+                            o.Id,
+                            o.OrderType,
+                            o.Description,
+                            o.CreatedAt
+                        }).ToList()
                     })
                     .ToListAsync();
 

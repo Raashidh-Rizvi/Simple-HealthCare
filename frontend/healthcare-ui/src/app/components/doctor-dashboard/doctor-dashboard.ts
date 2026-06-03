@@ -25,7 +25,7 @@ import { Subscription } from 'rxjs';
           </div>
 
           <div *ngIf="appointments.length > 0" class="grid grid-cols-2 gap-4 mt-2">
-            <div *ngFor="let apt of appointments" class="inner-card">
+            <div *ngFor="let apt of appointments" class="inner-card cursor-pointer" (click)="viewAppointmentDetails(apt)">
               <div class="flex justify-between items-start mb-2">
                 <strong class="text-main" style="font-size: 16px;">{{ apt.patientName }}</strong>
                 <span class="badge" [ngClass]="(apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled') ? 'badge-primary' : 'badge-warning'">{{ apt.status }}</span>
@@ -36,14 +36,14 @@ import { Subscription } from 'rxjs';
               <div *ngIf="apt.vitals && apt.vitals.length > 0" class="mt-3 p-3" style="background: rgba(0,0,0,0.2); border-radius: var(--radius-sm);">
                 <strong class="text-sm">Patient Vitals:</strong>
                 <ul class="list-none pl-0 m-0 text-sm mt-1 text-muted">
-                  <li *ngIf="apt.vitals[0].heartRate">Heart Rate: {{ apt.vitals[0].heartRate }}</li>
-                  <li *ngIf="apt.vitals[0].bloodPressure">BP: {{ apt.vitals[0].bloodPressure }}</li>
-                  <li *ngIf="apt.vitals[0].temperature">Temp: {{ apt.vitals[0].temperature }}</li>
-                  <li *ngIf="apt.vitals[0].weight">Weight: {{ apt.vitals[0].weight }}</li>
+                  <li *ngIf="apt.vitals[0].heartRate">Heart Rate: {{ apt.vitals[0].heartRate }} bpm</li>
+                  <li *ngIf="apt.vitals[0].bloodPressure">BP: {{ apt.vitals[0].bloodPressure }} mmHg</li>
+                  <li *ngIf="apt.vitals[0].temperature">Temp: {{ apt.vitals[0].temperature }} °F</li>
+                  <li *ngIf="apt.vitals[0].weight">Weight: {{ apt.vitals[0].weight }} lbs</li>
                 </ul>
               </div>
 
-              <button *ngIf="apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled'" (click)="startConsultation(apt)" class="btn btn-primary mt-4 w-full">Start Consultation</button>
+              <button *ngIf="apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled'" (click)="startConsultation(apt); $event.stopPropagation()" class="btn btn-primary mt-4 w-full">Start Consultation</button>
             </div>
           </div>
         </div>
@@ -136,19 +136,19 @@ import { Subscription } from 'rxjs';
             <h4 class="mb-4">Vitals</h4>
             <div class="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label class="form-label text-xs">Heart Rate</label>
+                <label class="form-label text-xs">Heart Rate (bpm)</label>
                 <input type="text" [(ngModel)]="newVital.heartRate" placeholder="e.g. 72" class="form-control">
               </div>
               <div>
-                <label class="form-label text-xs">Blood Pressure</label>
+                <label class="form-label text-xs">Blood Pressure (mmHg)</label>
                 <input type="text" [(ngModel)]="newVital.bloodPressure" placeholder="e.g. 120/80" class="form-control">
               </div>
               <div>
-                <label class="form-label text-xs">Temperature</label>
+                <label class="form-label text-xs">Temperature (°F)</label>
                 <input type="text" [(ngModel)]="newVital.temperature" placeholder="e.g. 98.6" class="form-control">
               </div>
               <div>
-                <label class="form-label text-xs">Weight</label>
+                <label class="form-label text-xs">Weight (lbs)</label>
                 <input type="text" [(ngModel)]="newVital.weight" placeholder="e.g. 150" class="form-control">
               </div>
             </div>
@@ -156,7 +156,7 @@ import { Subscription } from 'rxjs';
             
             <ul *ngIf="consultationData.vitals.length > 0" class="list-none pl-0 m-0 space-y-2">
                <li *ngFor="let v of consultationData.vitals; let i = index" class="inner-card flex justify-between items-center p-2 text-sm">
-                  <span>HR: {{ v.heartRate }}, BP: {{ v.bloodPressure }}, Temp: {{ v.temperature }}, Weight: {{ v.weight }}</span>
+                  <span>HR: {{ v.heartRate }} bpm, BP: {{ v.bloodPressure }} mmHg, Temp: {{ v.temperature }} °F, Weight: {{ v.weight }} lbs</span>
                   <button (click)="consultationData.vitals.splice(i, 1)" class="btn btn-danger text-xs p-1" style="min-width: 30px;">X</button>
                </li>
             </ul>
@@ -187,6 +187,88 @@ import { Subscription } from 'rxjs';
         <button (click)="saveConsultation()" class="btn btn-secondary" style="padding: 12px 32px;">Save Consultation</button>
       </div>
     </div>
+
+    <!-- Appointment Details Modal -->
+    <div *ngIf="showDetailsModal && selectedAppointment" class="modal-overlay" (click)="closeDetailsModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">Appointment Details</h3>
+            <p class="text-sm text-muted mt-1">ID: #{{ selectedAppointment.id }}</p>
+          </div>
+          <button class="modal-close-btn" (click)="closeDetailsModal()">&times;</button>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title">Patient Info</h4>
+          <div class="modal-grid">
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Name</span>
+              <span class="modal-detail-value">{{ selectedAppointment.patientName }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Date & Time</span>
+              <span class="modal-detail-value">{{ selectedAppointment.appointmentDate | date:'medium' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Status</span>
+              <span class="modal-detail-value">
+                <span class="badge" [ngClass]="(selectedAppointment.status === 'start' || selectedAppointment.status === 'SCHEDULED' || selectedAppointment.status === 'Scheduled') ? 'badge-primary' : 'badge-warning'">
+                  {{ selectedAppointment.status }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title secondary-title">Consultation Notes</h4>
+          <div class="inner-card">
+            <p class="text-sm" style="white-space: pre-wrap;">{{ selectedAppointment.notes || 'No consultation notes recorded yet.' }}</p>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title accent-title">Vitals History</h4>
+          <div *ngIf="!selectedAppointment.vitals || selectedAppointment.vitals.length === 0" class="text-muted text-sm">
+            No vitals recorded for this appointment.
+          </div>
+          <div *ngIf="selectedAppointment.vitals && selectedAppointment.vitals.length > 0" class="flex-col gap-2">
+            <div *ngFor="let vital of selectedAppointment.vitals" class="inner-card p-3 text-sm">
+              <div class="flex justify-between mb-2">
+                <strong class="text-main">Recorded At:</strong>
+                <span class="text-muted">{{ vital.recordedAt | date:'medium' }}</span>
+              </div>
+              <ul class="list-none pl-0 m-0 grid grid-cols-2 gap-2 text-muted">
+                <li *ngIf="vital.heartRate">Heart Rate: {{ vital.heartRate }} bpm</li>
+                <li *ngIf="vital.bloodPressure">Blood Pressure: {{ vital.bloodPressure }} mmHg</li>
+                <li *ngIf="vital.temperature">Temperature: {{ vital.temperature }} °F</li>
+                <li *ngIf="vital.weight">Weight: {{ vital.weight }} lbs</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title">Prescriptions & Orders</h4>
+          <div *ngIf="!selectedAppointment.orders || selectedAppointment.orders.length === 0" class="text-muted text-sm">
+            No orders or prescriptions recorded for this appointment.
+          </div>
+          <div *ngIf="selectedAppointment.orders && selectedAppointment.orders.length > 0" class="flex-col gap-2">
+            <div *ngFor="let order of selectedAppointment.orders" class="inner-card p-3 text-sm flex justify-between items-start">
+              <div>
+                <strong class="text-main">{{ order.orderType }}:</strong> {{ order.description }}
+              </div>
+              <span class="text-muted text-xs">{{ order.createdAt | date:'shortDate' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end mt-6">
+          <button (click)="closeDetailsModal()" class="btn btn-outline">Close</button>
+        </div>
+      </div>
+    </div>
   `,
   styleUrl: './doctor-dashboard.css'
 })
@@ -210,6 +292,10 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
 
   newVital = { heartRate: '', bloodPressure: '', temperature: '', weight: '' };
   newOrder = { orderType: 'Lab', description: '' };
+
+  // Details Modal State
+  selectedAppointment: any = null;
+  showDetailsModal = false;
 
   private speechSub!: Subscription;
 
@@ -368,5 +454,15 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       },
       error: (err) => console.error('Failed to save consultation', err)
     });
+  }
+
+  viewAppointmentDetails(apt: any) {
+    this.selectedAppointment = apt;
+    this.showDetailsModal = true;
+  }
+
+  closeDetailsModal() {
+    this.showDetailsModal = false;
+    this.selectedAppointment = null;
   }
 }

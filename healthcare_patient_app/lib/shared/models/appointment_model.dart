@@ -1,4 +1,5 @@
 import 'vital_model.dart';
+import 'order_model.dart';
 
 class Appointment {
   final int id;
@@ -9,6 +10,7 @@ class Appointment {
   final String status;
   final String? notes;
   final List<Vital> vitals;
+  final List<Order> orders;
 
   Appointment({
     required this.id,
@@ -19,11 +21,15 @@ class Appointment {
     required this.status,
     this.notes,
     required this.vitals,
+    required this.orders,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
     var vitalsList = json['vitals'] as List? ?? [];
     List<Vital> vitals = vitalsList.map((i) => Vital.fromJson(i)).toList();
+
+    var ordersList = json['orders'] as List? ?? [];
+    List<Order> orders = ordersList.map((i) => Order.fromJson(i)).toList();
 
     return Appointment(
       id: json['id'] ?? 0,
@@ -34,6 +40,8 @@ class Appointment {
       status: json['status'] ?? '',
       notes: json['notes'],
       vitals: vitals,
+      orders: orders,
     );
   }
 }
+

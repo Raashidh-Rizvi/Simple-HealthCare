@@ -14,7 +14,7 @@ class AuthProvider extends ChangeNotifier {
     return await _authService.isLoggedIn();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<String?> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
 
@@ -22,11 +22,17 @@ class AuthProvider extends ChangeNotifier {
       _user = await _authService.login(email, password);
       _isLoading = false;
       notifyListeners();
-      return _user != null;
+      return _user != null ? null : 'Login failed. Please check credentials.';
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      return false;
+      
+      // Parse exception message if it starts with "Exception: "
+      String msg = e.toString();
+      if (msg.startsWith('Exception: ')) {
+        msg = msg.substring(11);
+      }
+      return msg;
     }
   }
 

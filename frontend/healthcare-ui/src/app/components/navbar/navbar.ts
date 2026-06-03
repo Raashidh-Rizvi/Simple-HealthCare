@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-navbar',
@@ -14,13 +15,39 @@ import { RouterModule } from '@angular/router';
           </h3>
         </div>
         <div class="flex gap-4 items-center">
-          <a routerLink="/login" class="btn btn-outline text-sm">Sign Out</a>
+          @if (isLoggedIn) {
+            <a (click)="signOut()" class="btn btn-outline text-sm" style="cursor: pointer;">Sign Out</a>
+          } @else {
+            <a routerLink="/login" class="btn btn-primary text-sm">Log In</a>
+          }
         </div>
       </div>
     </nav>
   `,
   styleUrl: './navbar.css',
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit {
+  isLoggedIn = false;
 
+  constructor(private router: Router) {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.checkLoginStatus();
+    });
+  }
+
+  ngOnInit() {
+    this.checkLoginStatus();
+  }
+
+  checkLoginStatus() {
+    this.isLoggedIn = !!localStorage.getItem('token');
+  }
+
+  signOut() {
+    localStorage.removeItem('token');
+    this.checkLoginStatus();
+    this.router.navigate(['/login']);
+  }
 }

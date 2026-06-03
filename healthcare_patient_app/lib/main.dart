@@ -20,10 +20,10 @@ void main() {
 }
 
 class AppColors {
-  static const Color primary = Color(0xFF0D47A1); // Medical Blue
-  static const Color secondary = Color(0xFF1976D2);
-  static const Color background = Color(0xFFF5F7FA);
-  static const Color textDark = Color(0xFF1E293B);
+  static const Color primary = Color(0xFF0F52BA); // Sapphire Blue
+  static const Color secondary = Color(0xFF3B82F6);
+  static const Color background = Color(0xFFF3F4F6);
+  static const Color textDark = Color(0xFF0F172A);
   static const Color textLight = Color(0xFF64748B);
 }
 
@@ -101,9 +101,39 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Patient Portal',
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textDark,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              await Provider.of<AuthProvider>(context, listen: false).logout();
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
+        backgroundColor: Colors.white,
+        elevation: 8,
+        shadowColor: Colors.black12,
         onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;

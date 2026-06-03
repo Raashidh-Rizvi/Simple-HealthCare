@@ -20,6 +20,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = response.data;
         final user = User.fromJson(data);
+        
+        if (user.role != 'Patient') {
+          throw Exception('Only patients are allowed to access this app.');
+        }
+        
         await _storage.write(key: 'jwt_token', value: user.token);
         await _storage.write(key: 'user_role', value: user.role);
         return user;
