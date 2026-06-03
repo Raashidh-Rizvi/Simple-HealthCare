@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -6,7 +7,7 @@ import { ApiService } from '../../services/api.service';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CommonModule],
   template: `
     <div class="flex items-center justify-center mt-8">
       <div class="glass-card w-full" style="max-width: 420px;">
@@ -39,6 +40,20 @@ import { ApiService } from '../../services/api.service';
             </select>
           </div>
 
+          <div class="form-group" *ngIf="role === 'doctor'">
+            <label class="form-label">Specialization</label>
+            <select class="form-control" [(ngModel)]="specialization" name="specialization" required>
+              <option value="" disabled style="color: black;">Select Specialization</option>
+              <option value="General Physician" style="color: black;">General Physician</option>
+              <option value="Cardiologist" style="color: black;">Cardiologist</option>
+              <option value="Dermatologist" style="color: black;">Dermatologist</option>
+              <option value="Pediatrician" style="color: black;">Pediatrician</option>
+              <option value="Neurologist" style="color: black;">Neurologist</option>
+              <option value="Orthopedic" style="color: black;">Orthopedic</option>
+              <option value="Psychiatrist" style="color: black;">Psychiatrist</option>
+            </select>
+          </div>
+
           <button type="submit" class="btn btn-primary w-full mt-6">Register</button>
           
           <div class="text-center mt-6">
@@ -55,11 +70,12 @@ export class RegisterComponent {
   email = '';
   password = '';
   role = 'patient';
+  specialization = '';
 
   constructor(private router: Router, private api: ApiService) {}
 
   onRegister() {
-    if (!this.fullName || !this.email || !this.password || !this.role) {
+    if (!this.fullName || !this.email || !this.password || !this.role || (this.role === 'doctor' && !this.specialization)) {
       alert('Please fill out all required fields correctly.');
       return;
     }
@@ -73,7 +89,8 @@ export class RegisterComponent {
       password: this.password,
       role: this.role,
       firstName,
-      lastName
+      lastName,
+      specialization: this.role === 'doctor' ? this.specialization : undefined
     }).subscribe({
       next: () => {
         this.router.navigate(['/login']);

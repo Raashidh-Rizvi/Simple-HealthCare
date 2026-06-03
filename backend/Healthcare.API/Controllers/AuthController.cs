@@ -23,7 +23,7 @@ namespace Healthcare.API.Controllers
         }
 
         public class LoginDto { public required string Email { get; set; } public required string Password { get; set; } }
-        public class RegisterDto { public required string Email { get; set; } public required string Password { get; set; } public required string Role { get; set; } public required string FirstName { get; set; } public required string LastName { get; set; } }
+        public class RegisterDto { public required string Email { get; set; } public required string Password { get; set; } public required string Role { get; set; } public required string FirstName { get; set; } public required string LastName { get; set; } public string? Specialization { get; set; } }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
@@ -47,7 +47,7 @@ namespace Healthcare.API.Controllers
 
             if (dto.Role.ToLower() == "doctor")
             {
-                var doctor = new Doctor { UserId = user.Id, Specialization = "General" };
+                var doctor = new Doctor { UserId = user.Id, Specialization = string.IsNullOrWhiteSpace(dto.Specialization) ? "General" : dto.Specialization };
                 _context.Doctors.Add(doctor);
                 await _context.SaveChangesAsync();
             }
