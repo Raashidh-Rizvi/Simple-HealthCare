@@ -35,22 +35,22 @@ import { ApiService } from '../../services/api.service';
           <div class="form-group">
             <label class="form-label">Role</label>
             <select class="form-control" [(ngModel)]="role" name="role" required>
-              <option value="patient" style="color: black;">Patient</option>
-              <option value="doctor" style="color: black;">Doctor</option>
+              <option value="patient">Patient</option>
+              <option value="doctor">Doctor</option>
             </select>
           </div>
 
           <div class="form-group" *ngIf="role === 'doctor'">
             <label class="form-label">Specialization</label>
             <select class="form-control" [(ngModel)]="specialization" name="specialization" required>
-              <option value="" disabled style="color: black;">Select Specialization</option>
-              <option value="General Physician" style="color: black;">General Physician</option>
-              <option value="Cardiologist" style="color: black;">Cardiologist</option>
-              <option value="Dermatologist" style="color: black;">Dermatologist</option>
-              <option value="Pediatrician" style="color: black;">Pediatrician</option>
-              <option value="Neurologist" style="color: black;">Neurologist</option>
-              <option value="Orthopedic" style="color: black;">Orthopedic</option>
-              <option value="Psychiatrist" style="color: black;">Psychiatrist</option>
+              <option value="" disabled>Select Specialization</option>
+              <option value="General Physician">General Physician</option>
+              <option value="Cardiologist">Cardiologist</option>
+              <option value="Dermatologist">Dermatologist</option>
+              <option value="Pediatrician">Pediatrician</option>
+              <option value="Neurologist">Neurologist</option>
+              <option value="Orthopedic">Orthopedic</option>
+              <option value="Psychiatrist">Psychiatrist</option>
             </select>
           </div>
 

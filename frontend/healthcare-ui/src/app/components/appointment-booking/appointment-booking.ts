@@ -19,7 +19,7 @@ import { ApiService } from '../../services/api.service';
         <div class="form-group mb-4">
           <label class="form-label">Select Doctor</label>
           <select class="form-control" [(ngModel)]="selectedDoctorId" name="doctorId" required>
-            <option *ngFor="let doc of doctors" [value]="doc.id" style="color: black;">
+            <option *ngFor="let doc of doctors" [value]="doc.id">
               Dr. {{ doc.firstName }} {{ doc.lastName }} - {{ doc.specialization }}
             </option>
           </select>

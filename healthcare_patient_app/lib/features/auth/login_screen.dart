@@ -30,13 +30,39 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMsg ?? 'Login failed. Please check credentials.'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (errorMsg == 'Only patients are allowed to access this app.') {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                const SizedBox(width: 8),
+                Text('Access Denied', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Text(
+              'This mobile application is for patients only. If you are a doctor, please use the web portal to access your dashboard.',
+              style: GoogleFonts.inter(height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.primary)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg ?? 'Login failed. Please check credentials.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 

@@ -21,7 +21,7 @@ class AuthService {
         final data = response.data;
         final user = User.fromJson(data);
         
-        if (user.role != 'Patient') {
+        if (user.role.toLowerCase() != 'patient') {
           throw Exception('Only patients are allowed to access this app.');
         }
         

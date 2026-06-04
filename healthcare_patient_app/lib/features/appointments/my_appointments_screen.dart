@@ -161,8 +161,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                           color: (apt.status == 'complete' ||
                                   apt.status == 'SCHEDULED' ||
                                   apt.status == 'Scheduled')
-                              ? Colors.green.withOpacity(0.1)
-                              : Colors.orange.withOpacity(0.1),
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
