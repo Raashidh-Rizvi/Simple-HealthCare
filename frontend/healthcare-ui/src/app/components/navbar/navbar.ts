@@ -15,6 +15,9 @@ import { filter } from 'rxjs/operators';
           </h3>
         </div>
         <div class="flex gap-4 items-center">
+          <button (click)="toggleTheme()" class="btn btn-outline text-sm" style="padding: 8px 12px; border-radius: 50%; border-color: var(--surface-border);" title="Toggle Theme">
+            {{ isDarkMode ? '🌙' : '☀️' }}
+          </button>
           @if (isLoggedIn) {
             <a (click)="signOut()" class="btn btn-outline text-sm" style="cursor: pointer;">Sign Out</a>
           } @else {
@@ -28,6 +31,7 @@ import { filter } from 'rxjs/operators';
 })
 export class NavbarComponent implements OnInit {
   isLoggedIn = false;
+  isDarkMode = true;
 
   constructor(private router: Router) {
     this.router.events.pipe(
@@ -39,6 +43,29 @@ export class NavbarComponent implements OnInit {
 
   ngOnInit() {
     this.checkLoginStatus();
+    this.initTheme();
+  }
+
+  initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      this.isDarkMode = false;
+      document.documentElement.classList.add('light-theme');
+    } else {
+      this.isDarkMode = true;
+      document.documentElement.classList.remove('light-theme');
+    }
+  }
+
+  toggleTheme() {
+    this.isDarkMode = !this.isDarkMode;
+    if (this.isDarkMode) {
+      document.documentElement.classList.remove('light-theme');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.add('light-theme');
+      localStorage.setItem('theme', 'light');
+    }
   }
 
   checkLoginStatus() {

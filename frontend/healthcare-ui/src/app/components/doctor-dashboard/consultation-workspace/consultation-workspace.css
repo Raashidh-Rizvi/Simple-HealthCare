@@ -1,0 +1,120 @@
+.consultation-workspace {
+  display: grid;
+  grid-template-columns: 300px 1fr 350px;
+  gap: 24px;
+  height: calc(100vh - 180px); /* Adjust based on top bar + padding */
+  overflow: hidden;
+}
+
+.panel {
+  background: var(--surface);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--surface-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.panel-header h3 {
+  font-size: 16px;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.panel-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Scrollbar styling for panels */
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+.panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+/* Patient Summary Specifics */
+.patient-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.patient-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.vital-box {
+  background: rgba(0,0,0,0.2);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+}
+
+.vital-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.vital-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--secondary);
+}
+
+.vital-value.critical {
+  color: var(--danger);
+}
+
+/* Tabs in right panel */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.tab.active {
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.tab:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-main);
+}
