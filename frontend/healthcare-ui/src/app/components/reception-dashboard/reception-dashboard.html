@@ -1,0 +1,67 @@
+<div class="dashboard-container">
+  <div class="header">
+    <h1>Reception Dashboard</h1>
+    <button class="btn btn-secondary" (click)="logout()">Logout</button>
+  </div>
+
+  <div class="card content-card">
+    <h2>Today's Appointments</h2>
+    
+    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    <div *ngIf="success" class="alert alert-success">{{ success }}</div>
+
+    <div *ngIf="loading" class="loading">Loading appointments...</div>
+
+    <div *ngIf="!loading && appointments.length === 0" class="no-data">
+      No appointments scheduled for today.
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && appointments.length > 0">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Specialty</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let apt of appointments">
+            <td>{{ apt.startTime }}</td>
+            <td>{{ apt.patientName }}</td>
+            <td>{{ apt.doctorName }}</td>
+            <td>{{ apt.specialization }}</td>
+            <td>
+              <span class="badge" 
+                    [ngClass]="{
+                      'badge-pending': apt.encounterStatus == null && apt.status == 'Pending',
+                      'badge-confirmed': apt.encounterStatus == null && apt.status == 'Confirmed',
+                      'badge-checkin': apt.encounterStatus == 'CheckedIn',
+                      'badge-vitals': apt.encounterStatus == 'VitalsRecorded',
+                      'badge-consult': apt.encounterStatus == 'InConsultation',
+                      'badge-completed': apt.encounterStatus == 'Completed'
+                    }">
+                {{ apt.encounterStatus || apt.status }}
+              </span>
+            </td>
+            <td>
+              <button *ngIf="(apt.status === 'Confirmed' || apt.status === 'Pending') && !apt.encounterStatus" 
+                      class="btn btn-primary btn-sm" 
+                      (click)="checkIn(apt)">
+                Check In
+              </button>
+              <button *ngIf="apt.encounterStatus" 
+                      class="btn btn-secondary btn-sm" 
+                      disabled>
+                Checked In
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

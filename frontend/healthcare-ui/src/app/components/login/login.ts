@@ -52,8 +52,17 @@ export class LoginComponent {
     this.api.login({ email: this.email, password: this.password }).subscribe({
       next: (res) => {
         localStorage.setItem('token', res.token);
-        if (res.role.toLowerCase() === 'doctor') {
+        localStorage.setItem('role', res.role);
+        localStorage.setItem('name', res.firstName + ' ' + res.lastName);
+        const role = res.role.toLowerCase();
+        if (role === 'doctor') {
           this.router.navigate(['/doctor']);
+        } else if (role === 'admin') {
+          this.router.navigate(['/admin']);
+        } else if (role === 'receptionist') {
+          this.router.navigate(['/reception']);
+        } else if (role === 'nurse') {
+          this.router.navigate(['/nurse']);
         } else {
           this.router.navigate(['/patient']);
         }

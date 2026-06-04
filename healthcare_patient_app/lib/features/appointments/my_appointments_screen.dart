@@ -257,7 +257,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                                   _buildVitalItem('Heart Rate',
                                       '${vital.heartRate ?? "--"} bpm'),
                                   _buildVitalItem('Blood Pressure',
-                                      '${vital.bloodPressure ?? "--"} mmHg'),
+                                      '${vital.bloodPressureSystolic ?? "--"}/${vital.bloodPressureDiastolic ?? "--"} mmHg'),
                                 ],
                               ),
                               const SizedBox(height: 8),

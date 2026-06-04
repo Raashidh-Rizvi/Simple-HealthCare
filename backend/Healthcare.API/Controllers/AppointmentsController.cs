@@ -20,11 +20,24 @@ namespace Healthcare.API.Controllers
             _context = context;
         }
 
+        // ─── DTOs ────────────────────────────────────────────────────────────────
+
         public class CreateAppointmentDto
         {
             public int DoctorId { get; set; }
             public DateTime AppointmentDate { get; set; }
+            public TimeSpan StartTime { get; set; }
+            public TimeSpan EndTime { get; set; }
+            public string? Reason { get; set; }
             public string? Notes { get; set; }
+        }
+
+        public class RescheduleAppointmentDto
+        {
+            public DateTime AppointmentDate { get; set; }
+            public TimeSpan StartTime { get; set; }
+            public TimeSpan EndTime { get; set; }
+            public string? Reason { get; set; }
         }
 
         public class UpdateStatusDto
@@ -32,140 +45,254 @@ namespace Healthcare.API.Controllers
             public required string Status { get; set; }
         }
 
-        public class ConsultationDataDto
+
+        // ─── Helper ──────────────────────────────────────────────────────────────
+
+        private int? GetCurrentUserId()
         {
-            public required string Status { get; set; }
-            public string? Notes { get; set; }
-            public List<VitalDto>? Vitals { get; set; }
-            public List<OrderDto>? Orders { get; set; }
+            var val = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(val, out var id) ? id : null;
         }
 
-        public class VitalDto
+        private async Task CreateNotificationAsync(int userId, string type, string message)
         {
-            [RegularExpression(@"^\d{2,3}$", ErrorMessage = "Heart rate must be a valid number")]
-            public string? HeartRate { get; set; }
-            [RegularExpression(@"^\d{2,3}\/\d{2,3}$", ErrorMessage = "Blood pressure must be in format SYS/DIA")]
-            public string? BloodPressure { get; set; }
-            [RegularExpression(@"^\d{2,3}(\.\d{1,2})?$", ErrorMessage = "Temperature must be a valid number")]
-            public string? Temperature { get; set; }
-            [RegularExpression(@"^\d{2,3}(\.\d{1,2})?$", ErrorMessage = "Weight must be a valid number")]
-            public string? Weight { get; set; }
+            _context.Notifications.Add(new Notification
+            {
+                UserId = userId,
+                Type = type,
+                Message = message,
+                SentAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
         }
 
-        public class OrderDto
+        private async Task WriteAuditAsync(string entity, int entityId, string action, int performedBy, string? details = null)
         {
-            public required string OrderType { get; set; }
-            public required string Description { get; set; }
+            _context.AuditLogs.Add(new AuditLog
+            {
+                EntityName = entity,
+                EntityId = entityId,
+                Action = action,
+                PerformedByUserId = performedBy,
+                Timestamp = DateTime.UtcNow,
+                Details = details
+            });
+            await _context.SaveChangesAsync();
         }
+
+        // ─── GET available slots ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// Returns available time slots for a doctor on a given date.
+        /// Slot generation algorithm:
+        ///   1. Find DoctorAvailability for DayOfWeek
+        ///   2. Check DoctorBlockedDates for the date
+        ///   3. Generate slots (start → end − duration, step = duration)
+        ///   4. Remove already-booked slots (Pending|Confirmed)
+        ///   5. Remove past slots if date is today
+        /// </summary>
+        [HttpGet("available-slots")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAvailableSlots([FromQuery] int doctorId, [FromQuery] DateTime date)
+        {
+            var dateOnly = date.Date;
+            var dayOfWeek = dateOnly.DayOfWeek;
+
+            // 1. Find availability for that day
+            var availability = await _context.DoctorAvailabilities
+                .FirstOrDefaultAsync(da => da.DoctorId == doctorId && da.DayOfWeek == dayOfWeek);
+
+            if (availability == null)
+                return Ok(new { slots = new List<object>(), message = "Doctor not available on this day" });
+
+            // 2. Check blocked dates
+            var isBlocked = await _context.DoctorBlockedDates
+                .AnyAsync(bd => bd.DoctorId == doctorId && bd.BlockedDate.Date == dateOnly);
+
+            if (isBlocked)
+                return Ok(new { slots = new List<object>(), message = "Doctor is not available on this date (blocked)" });
+
+            // 3. Generate all slots
+            var allSlots = new List<(TimeSpan Start, TimeSpan End)>();
+            var slotDuration = TimeSpan.FromMinutes(availability.SlotDurationMinutes);
+            var current = availability.StartTime;
+            while (current + slotDuration <= availability.EndTime)
+            {
+                allSlots.Add((current, current + slotDuration));
+                current += slotDuration;
+            }
+
+            // 4. Fetch booked start times
+            var bookedSlots = await _context.Appointments
+                .Where(a => a.DoctorId == doctorId
+                         && a.AppointmentDate.Date == dateOnly
+                         && (a.Status == "Pending" || a.Status == "Confirmed"))
+                .Select(a => a.StartTime)
+                .ToListAsync();
+
+            // 5. Filter: remove booked and past slots
+            var now = DateTime.UtcNow.TimeOfDay;
+            var isToday = dateOnly == DateTime.UtcNow.Date;
+
+            var available = allSlots
+                .Where(s => !bookedSlots.Contains(s.Start))
+                .Where(s => !isToday || s.Start > now)
+                .Select(s => new
+                {
+                    startTime = s.Start.ToString(@"hh\:mm"),
+                    endTime = s.End.ToString(@"hh\:mm"),
+                    startTimeSpan = s.Start,
+                    endTimeSpan = s.End
+                })
+                .ToList();
+
+            return Ok(new { slots = available });
+        }
+
+        // ─── POST /api/appointments — Book (transaction-safe, DB-enforced) ────────
 
         [HttpPost]
         public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentDto dto)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId)) return Unauthorized();
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
 
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
             if (patient == null) return BadRequest(new { message = "Only patients can create appointments" });
 
-            var appointment = new Appointment
+            // Begin transaction — prevents race conditions
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                DoctorId = dto.DoctorId,
-                PatientId = patient.Id,
-                AppointmentDate = dto.AppointmentDate,
-                Status = "start",
-                Notes = dto.Notes
-            };
+                // Re-check slot inside the transaction (second layer of protection)
+                var conflict = await _context.Appointments.AnyAsync(a =>
+                    a.DoctorId == dto.DoctorId
+                    && a.AppointmentDate.Date == dto.AppointmentDate.Date
+                    && a.StartTime == dto.StartTime
+                    && (a.Status == "Pending" || a.Status == "Confirmed"));
 
-            _context.Appointments.Add(appointment);
-            await _context.SaveChangesAsync();
+                if (conflict)
+                {
+                    await transaction.RollbackAsync();
+                    return Conflict(new { message = "This time slot has just been booked by another patient. Please choose a different slot." });
+                }
 
-            return Ok(new { message = "Appointment created successfully", appointment.Id });
+                var appointment = new Appointment
+                {
+                    DoctorId = dto.DoctorId,
+                    PatientId = patient.Id,
+                    AppointmentDate = dto.AppointmentDate.Date,
+                    StartTime = dto.StartTime,
+                    EndTime = dto.EndTime,
+                    Status = "Pending",
+                    Reason = dto.Reason,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Appointments.Add(appointment);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                // Notify patient
+                await CreateNotificationAsync(userId.Value, "Booking",
+                    $"Your appointment with Doctor ID {dto.DoctorId} on {dto.AppointmentDate:dd MMM yyyy} at {dto.StartTime:hh\\:mm} has been submitted and is pending confirmation.");
+
+                // Audit
+                await WriteAuditAsync("Appointment", appointment.Id, "Created", userId.Value,
+                    $"PatientId={patient.Id}, DoctorId={dto.DoctorId}, Date={dto.AppointmentDate:yyyy-MM-dd}, Slot={dto.StartTime}");
+
+                return Ok(new { message = "Appointment created successfully", appointment.Id });
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_Doctor_TimeSlot") == true)
+            {
+                await transaction.RollbackAsync();
+                return Conflict(new { message = "This time slot is already booked. Please choose a different slot." });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
+
+        // ─── GET /api/appointments/me ─────────────────────────────────────────────
 
         [HttpGet("me")]
         public async Task<IActionResult> GetMyAppointments()
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId)) return Unauthorized();
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
 
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return Unauthorized();
 
-            if (user.Role.ToLower() == "doctor")
+            if (user.Role.Equals("Doctor", StringComparison.OrdinalIgnoreCase))
             {
                 var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
                 if (doctor == null) return NotFound();
 
                 var appointments = await _context.Appointments
-                    .Include(a => a.Patient)
-                    .ThenInclude(p => p!.User)
-                    .Include(a => a.Vitals)
-                    .Include(a => a.Orders)
+                    .Include(a => a.Patient).ThenInclude(p => p!.User)
+                    .Include(a => a.Encounter).ThenInclude(e => e!.Vitals)
+                    .Include(a => a.Encounter).ThenInclude(e => e!.Orders)
                     .Where(a => a.DoctorId == doctor.Id)
-                    .OrderBy(a => a.AppointmentDate)
+                    .OrderBy(a => a.AppointmentDate).ThenBy(a => a.StartTime)
                     .Select(a => new
                     {
                         a.Id,
                         a.AppointmentDate,
+                        StartTime = a.StartTime.ToString(@"hh\:mm"),
+                        EndTime = a.EndTime.ToString(@"hh\:mm"),
                         a.Status,
-                        a.Notes,
+                        a.Reason,
+                        Notes = a.Encounter != null ? a.Encounter.Notes : null,
+                        a.CreatedAt,
                         PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
-                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).Select(v => new
+                        PatientId = a.PatientId,
+                        Vitals = (a.Encounter != null ? a.Encounter.Vitals : new List<Vital>()).Select(v => new
                         {
-                            v.Id,
-                            v.HeartRate,
-                            v.BloodPressure,
-                            v.Temperature,
-                            v.Weight,
-                            v.RecordedAt
+                            v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
                         }).ToList(),
-                        Orders = a.Orders.OrderByDescending(o => o.CreatedAt).Select(o => new
+                        Orders = (a.Encounter != null ? a.Encounter.Orders : new List<Order>()).Select(o => new
                         {
-                            o.Id,
-                            o.OrderType,
-                            o.Description,
-                            o.CreatedAt
+                            o.Id, o.OrderType, o.Description, o.CreatedAt
                         }).ToList()
                     })
                     .ToListAsync();
-                
+
                 return Ok(appointments);
             }
-            else if (user.Role.ToLower() == "patient")
+            else if (user.Role.Equals("Patient", StringComparison.OrdinalIgnoreCase))
             {
                 var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
                 if (patient == null) return NotFound();
 
                 var appointments = await _context.Appointments
-                    .Include(a => a.Doctor)
-                    .ThenInclude(d => d!.User)
-                    .Include(a => a.Vitals)
-                    .Include(a => a.Orders)
+                    .Include(a => a.Doctor).ThenInclude(d => d!.User)
+                    .Include(a => a.Encounter).ThenInclude(e => e!.Vitals)
+                    .Include(a => a.Encounter).ThenInclude(e => e!.Orders)
                     .Where(a => a.PatientId == patient.Id)
-                    .OrderBy(a => a.AppointmentDate)
+                    .OrderByDescending(a => a.AppointmentDate).ThenBy(a => a.StartTime)
                     .Select(a => new
                     {
                         a.Id,
                         a.AppointmentDate,
+                        StartTime = a.StartTime.ToString(@"hh\:mm"),
+                        EndTime = a.EndTime.ToString(@"hh\:mm"),
                         a.Status,
-                        a.Notes,
+                        a.Reason,
+                        Notes = a.Encounter != null ? a.Encounter.Notes : null,
+                        a.CreatedAt,
                         DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
                         Specialization = a.Doctor.Specialization,
-                        Vitals = a.Vitals.OrderByDescending(v => v.RecordedAt).Select(v => new
+                        ConsultationFee = a.Doctor.ConsultationFee,
+                        Vitals = (a.Encounter != null ? a.Encounter.Vitals : new List<Vital>()).Select(v => new
                         {
-                            v.Id,
-                            v.HeartRate,
-                            v.BloodPressure,
-                            v.Temperature,
-                            v.Weight,
-                            v.RecordedAt
+                            v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
                         }).ToList(),
-                        Orders = a.Orders.OrderByDescending(o => o.CreatedAt).Select(o => new
+                        Orders = (a.Encounter != null ? a.Encounter.Orders : new List<Order>()).Select(o => new
                         {
-                            o.Id,
-                            o.OrderType,
-                            o.Description,
-                            o.CreatedAt
+                            o.Id, o.OrderType, o.Description, o.CreatedAt
                         }).ToList()
                     })
                     .ToListAsync();
@@ -175,6 +302,235 @@ namespace Healthcare.API.Controllers
 
             return BadRequest();
         }
+
+        // ─── GET /api/appointments/today (For Reception/Nurse) ──────────────────
+
+        [HttpGet("today")]
+        [Authorize(Roles = "Receptionist,Nurse,Admin")]
+        public async Task<IActionResult> GetTodayAppointments()
+        {
+            var today = DateTime.UtcNow.Date;
+            
+            var appointments = await _context.Appointments
+                .Include(a => a.Doctor).ThenInclude(d => d!.User)
+                .Include(a => a.Patient).ThenInclude(p => p!.User)
+                .Include(a => a.Encounter)
+                .Where(a => a.AppointmentDate.Date == today)
+                .OrderBy(a => a.StartTime)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.AppointmentDate,
+                    StartTime = a.StartTime.ToString(@"hh\:mm"),
+                    EndTime = a.EndTime.ToString(@"hh\:mm"),
+                    a.Status,
+                    a.Reason,
+                    a.CreatedAt,
+                    DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
+                    Specialization = a.Doctor.Specialization,
+                    PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
+                    PatientId = a.PatientId,
+                    EncounterId = a.Encounter != null ? a.Encounter.Id : (int?)null,
+                    EncounterStatus = a.Encounter != null ? a.Encounter.Status : null
+                })
+                .ToListAsync();
+
+            return Ok(appointments);
+        }
+
+        // ─── PUT /api/appointments/{id}/cancel ────────────────────────────────────
+
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> CancelAppointment(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var appointment = await _context.Appointments
+                .Include(a => a.Patient).ThenInclude(p => p!.User)
+                .Include(a => a.Doctor).ThenInclude(d => d!.User)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment == null) return NotFound();
+
+            if (appointment.Status == "Completed" || appointment.Status == "Cancelled")
+                return BadRequest(new { message = $"Cannot cancel an appointment with status '{appointment.Status}'" });
+
+            appointment.Status = "Cancelled";
+            await _context.SaveChangesAsync();
+
+            // Notify patient
+            if (appointment.Patient?.UserId != null)
+                await CreateNotificationAsync(appointment.Patient.UserId, "Cancellation",
+                    $"Your appointment on {appointment.AppointmentDate:dd MMM yyyy} at {appointment.StartTime:hh\\:mm} has been cancelled.");
+
+            await WriteAuditAsync("Appointment", appointment.Id, "Cancelled", userId.Value);
+
+            return Ok(new { message = "Appointment cancelled" });
+        }
+
+        // ─── PUT /api/appointments/{id}/reschedule ────────────────────────────────
+
+        [HttpPut("{id}/reschedule")]
+        public async Task<IActionResult> RescheduleAppointment(int id, [FromBody] RescheduleAppointmentDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var appointment = await _context.Appointments
+                    .Include(a => a.Patient)
+                    .FirstOrDefaultAsync(a => a.Id == id);
+                if (appointment == null) return NotFound();
+
+                if (appointment.Status == "Completed" || appointment.Status == "Cancelled")
+                    return BadRequest(new { message = "Cannot reschedule a completed or cancelled appointment" });
+
+                // Check the new slot is free
+                var conflict = await _context.Appointments.AnyAsync(a =>
+                    a.DoctorId == appointment.DoctorId
+                    && a.AppointmentDate.Date == dto.AppointmentDate.Date
+                    && a.StartTime == dto.StartTime
+                    && a.Id != id
+                    && (a.Status == "Pending" || a.Status == "Confirmed"));
+
+                if (conflict)
+                {
+                    await transaction.RollbackAsync();
+                    return Conflict(new { message = "The new time slot is already booked. Please choose a different slot." });
+                }
+
+                // Cancel old and rebook (atomic)
+                appointment.Status = "Cancelled";
+                await _context.SaveChangesAsync();
+
+                var newAppointment = new Appointment
+                {
+                    DoctorId = appointment.DoctorId,
+                    PatientId = appointment.PatientId,
+                    AppointmentDate = dto.AppointmentDate.Date,
+                    StartTime = dto.StartTime,
+                    EndTime = dto.EndTime,
+                    Status = "Pending",
+                    Reason = dto.Reason ?? appointment.Reason,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Appointments.Add(newAppointment);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                if (appointment.Patient?.UserId != null)
+                    await CreateNotificationAsync(appointment.Patient.UserId, "Booking",
+                        $"Your appointment has been rescheduled to {dto.AppointmentDate:dd MMM yyyy} at {dto.StartTime:hh\\:mm}.");
+
+                await WriteAuditAsync("Appointment", newAppointment.Id, "Rescheduled", userId.Value,
+                    $"OriginalAppointmentId={id}");
+
+                return Ok(new { message = "Appointment rescheduled", newAppointmentId = newAppointment.Id });
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_Doctor_TimeSlot") == true)
+            {
+                await transaction.RollbackAsync();
+                return Conflict(new { message = "That time slot is already booked." });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ─── Doctor actions ───────────────────────────────────────────────────────
+
+        [HttpPut("{id}/confirm")]
+        [Authorize(Roles = "Doctor,doctor")]
+        public async Task<IActionResult> ConfirmAppointment(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var appointment = await _context.Appointments
+                .Include(a => a.Patient)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment == null) return NotFound();
+            if (appointment.Status != "Pending")
+                return BadRequest(new { message = "Only pending appointments can be confirmed" });
+
+            appointment.Status = "Confirmed";
+            await _context.SaveChangesAsync();
+
+            if (appointment.Patient?.UserId != null)
+                await CreateNotificationAsync(appointment.Patient.UserId, "Booking",
+                    $"Your appointment on {appointment.AppointmentDate:dd MMM yyyy} at {appointment.StartTime:hh\\:mm} has been confirmed by your doctor.");
+
+            await WriteAuditAsync("Appointment", appointment.Id, "Confirmed", userId.Value);
+            return Ok(new { message = "Appointment confirmed" });
+        }
+
+        [HttpPut("{id}/reject")]
+        [Authorize(Roles = "Doctor,doctor")]
+        public async Task<IActionResult> RejectAppointment(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var appointment = await _context.Appointments
+                .Include(a => a.Patient)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment == null) return NotFound();
+            if (appointment.Status != "Pending")
+                return BadRequest(new { message = "Only pending appointments can be rejected" });
+
+            appointment.Status = "Rejected";
+            await _context.SaveChangesAsync();
+
+            if (appointment.Patient?.UserId != null)
+                await CreateNotificationAsync(appointment.Patient.UserId, "Cancellation",
+                    $"Your appointment on {appointment.AppointmentDate:dd MMM yyyy} at {appointment.StartTime:hh\\:mm} was rejected by your doctor.");
+
+            await WriteAuditAsync("Appointment", appointment.Id, "Rejected", userId.Value);
+            return Ok(new { message = "Appointment rejected" });
+        }
+
+        [HttpPut("{id}/complete")]
+        [Authorize(Roles = "Doctor,doctor")]
+        public async Task<IActionResult> CompleteAppointment(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var appointment = await _context.Appointments.FindAsync(id);
+            if (appointment == null) return NotFound();
+            if (appointment.Status != "Confirmed")
+                return BadRequest(new { message = "Only confirmed appointments can be marked as completed" });
+
+            appointment.Status = "Completed";
+            await _context.SaveChangesAsync();
+            await WriteAuditAsync("Appointment", appointment.Id, "Completed", userId.Value);
+            return Ok(new { message = "Appointment completed" });
+        }
+
+        [HttpPut("{id}/no-show")]
+        [Authorize(Roles = "Doctor,doctor")]
+        public async Task<IActionResult> MarkNoShow(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var appointment = await _context.Appointments.FindAsync(id);
+            if (appointment == null) return NotFound();
+            if (appointment.Status != "Confirmed")
+                return BadRequest(new { message = "Only confirmed appointments can be marked as no-show" });
+
+            appointment.Status = "NoShow";
+            await _context.SaveChangesAsync();
+            await WriteAuditAsync("Appointment", appointment.Id, "NoShow", userId.Value);
+            return Ok(new { message = "Appointment marked as no-show" });
+        }
+
+        // ─── Status (legacy) ─────────────────────────────────────────────────────
 
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
@@ -188,74 +544,89 @@ namespace Healthcare.API.Controllers
             return Ok(new { message = "Status updated" });
         }
 
-        [HttpPost("{id}/consultation")]
-        public async Task<IActionResult> SaveConsultation(int id, [FromBody] ConsultationDataDto dto)
+
+
+        // ─── Notifications ────────────────────────────────────────────────────────
+
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetMyNotifications()
         {
-            var appointment = await _context.Appointments
-                .Include(a => a.Vitals)
-                .Include(a => a.Orders)
-                .FirstOrDefaultAsync(a => a.Id == id);
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
 
-            if (appointment == null) return NotFound();
+            var notifications = await _context.Notifications
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.SentAt)
+                .Take(50)
+                .ToListAsync();
 
-            appointment.Status = dto.Status;
-            appointment.Notes = dto.Notes;
-
-            if (dto.Vitals != null && dto.Vitals.Any())
-            {
-                foreach (var v in dto.Vitals)
-                {
-                    appointment.Vitals.Add(new Vital
-                    {
-                        HeartRate = v.HeartRate,
-                        BloodPressure = v.BloodPressure,
-                        Temperature = v.Temperature,
-                        Weight = v.Weight,
-                        RecordedAt = DateTime.UtcNow
-                    });
-                }
-            }
-
-            if (dto.Orders != null && dto.Orders.Any())
-            {
-                foreach (var o in dto.Orders)
-                {
-                    appointment.Orders.Add(new Order
-                    {
-                        OrderType = o.OrderType,
-                        Description = o.Description,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Consultation saved successfully" });
+            return Ok(notifications);
         }
 
-        [HttpPost("{id}/vitals")]
-        public async Task<IActionResult> AddVitals(int id, [FromBody] VitalDto dto)
+        [HttpPut("notifications/{notificationId}/read")]
+        public async Task<IActionResult> MarkNotificationRead(int notificationId)
         {
-            var appointment = await _context.Appointments
-                .Include(a => a.Vitals)
-                .FirstOrDefaultAsync(a => a.Id == id);
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
 
-            if (appointment == null) return NotFound();
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
+            if (notification == null) return NotFound();
+
+            notification.IsRead = true;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Marked as read" });
+        }
+
+        // ─── Home Vitals ────────────────────────────────────────────────────────
+        [HttpPost("{id}/vitals")]
+        [Authorize(Roles = "Patient,patient")]
+        public async Task<IActionResult> AddHomeVitals(int id, [FromBody] VitalDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var appointment = await _context.Appointments
+                .Include(a => a.Encounter)
+                .Include(a => a.Patient)
+                .FirstOrDefaultAsync(a => a.Id == id);
+                
+            if (appointment == null) return NotFound(new { message = "Appointment not found" });
+            
+            if (appointment.Patient!.UserId != userId)
+                return Forbid();
+
+            var encounter = appointment.Encounter;
+            if (encounter == null)
+            {
+                encounter = new Encounter
+                {
+                    AppointmentId = appointment.Id,
+                    PatientId = appointment.PatientId,
+                    DoctorId = appointment.DoctorId,
+                    Status = "HomeVitalsRecorded"
+                };
+                _context.Encounters.Add(encounter);
+                await _context.SaveChangesAsync(); // Save to get ID
+            }
 
             var vital = new Vital
             {
-                HeartRate = dto.HeartRate,
-                BloodPressure = dto.BloodPressure,
-                Temperature = dto.Temperature,
-                Weight = dto.Weight,
+                EncounterId = encounter.Id,
+                HeartRate = dto.HeartRate?.ToString(),
+                BloodPressureSystolic = dto.BloodPressureSystolic,
+                BloodPressureDiastolic = dto.BloodPressureDiastolic,
+                Temperature = dto.Temperature?.ToString(),
+                Weight = dto.Weight?.ToString(),
+                IsHomeReading = true, // Force to true for this endpoint
+                RecordedBy = "Patient",
                 RecordedAt = DateTime.UtcNow
             };
-            
-            appointment.Vitals.Add(vital);
+
+            _context.Vitals.Add(vital);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Vitals added successfully", vital });
+            return Ok(new { message = "Home vitals recorded successfully" });
         }
     }
 }

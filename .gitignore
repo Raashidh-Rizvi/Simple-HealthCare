@@ -1,1 +1,41 @@
+# =============================================================
+# Environment files – protect secrets
+# =============================================================
 .env
+.env.local
+.env.*.local
+
+# Project-specific .env files
+backend/Healthcare.API/.env
+frontend/healthcare-ui/.env
+healthcare_patient_app/.env
+
+# Allow example/template files (no real secrets)
+!.env.example
+!**/.env.example
+
+# =============================================================
+# .NET / ASP.NET Core
+# =============================================================
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# =============================================================
+# Angular
+# =============================================================
+frontend/healthcare-ui/node_modules/
+frontend/healthcare-ui/dist/
+frontend/healthcare-ui/.angular/cache/
+
+# =============================================================
+# Flutter / Dart
+# =============================================================
+healthcare_patient_app/build/
+healthcare_patient_app/.dart_tool/
+healthcare_patient_app/.packages
+healthcare_patient_app/.pub-cache/
+healthcare_patient_app/.flutter-plugins
+healthcare_patient_app/.flutter-plugins-dependencies

@@ -28,22 +28,25 @@ import { Subscription } from 'rxjs';
             <div *ngFor="let apt of appointments" class="inner-card cursor-pointer" (click)="viewAppointmentDetails(apt)">
               <div class="flex justify-between items-start mb-2">
                 <strong class="text-main" style="font-size: 16px;">{{ apt.patientName }}</strong>
-                <span class="badge" [ngClass]="(apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled') ? 'badge-primary' : 'badge-warning'">{{ apt.status }}</span>
+                <span class="badge" [ngClass]="getStatusBadgeClass(apt.status)">{{ apt.status }}</span>
               </div>
-              <p class="text-sm text-muted mb-1"><strong class="text-main">Date:</strong> {{ apt.appointmentDate | date:'medium' }}</p>
+              <p class="text-sm text-muted mb-1"><strong class="text-main">Date:</strong> {{ apt.appointmentDate | date:'mediumDate' }}</p>
+              <p class="text-sm text-muted mb-1"><strong class="text-main">Time:</strong> {{ apt.startTime }} – {{ apt.endTime }}</p>
+              <p class="text-sm text-muted mb-1" *ngIf="apt.reason"><strong class="text-main">Reason:</strong> {{ apt.reason }}</p>
               <p class="text-sm text-muted mb-3"><strong class="text-main">Notes:</strong> {{ apt.notes || 'None' }}</p>
 
-              <div *ngIf="apt.vitals && apt.vitals.length > 0" class="mt-3 p-3" style="background: rgba(0,0,0,0.2); border-radius: var(--radius-sm);">
-                <strong class="text-sm">Patient Vitals:</strong>
-                <ul class="list-none pl-0 m-0 text-sm mt-1 text-muted">
-                  <li *ngIf="apt.vitals[0].heartRate">Heart Rate: {{ apt.vitals[0].heartRate }} bpm</li>
-                  <li *ngIf="apt.vitals[0].bloodPressure">BP: {{ apt.vitals[0].bloodPressure }} mmHg</li>
-                  <li *ngIf="apt.vitals[0].temperature">Temp: {{ apt.vitals[0].temperature }} °F</li>
-                  <li *ngIf="apt.vitals[0].weight">Weight: {{ apt.vitals[0].weight }} lbs</li>
-                </ul>
+              <div *ngIf="apt.encounterId" class="mt-3 p-3" style="background: rgba(0,0,0,0.2); border-radius: var(--radius-sm);">
+                <strong class="text-sm">Encounter Status:</strong> {{ apt.encounterStatus }}<br/>
               </div>
 
-              <button *ngIf="apt.status === 'start' || apt.status === 'SCHEDULED' || apt.status === 'Scheduled'" (click)="startConsultation(apt); $event.stopPropagation()" class="btn btn-primary mt-4 w-full">Start Consultation</button>
+              <!-- Appointment Action Buttons -->
+              <div class="apt-actions mt-4" (click)="$event.stopPropagation()">
+                <button *ngIf="apt.status === 'Pending'" (click)="confirmApt(apt.id)" class="btn btn-success btn-xs" id="confirm-apt-{{apt.id}}">✓ Confirm</button>
+                <button *ngIf="apt.status === 'Pending'" (click)="rejectApt(apt.id)" class="btn btn-danger btn-xs" id="reject-apt-{{apt.id}}">✗ Reject</button>
+                <button *ngIf="apt.encounterStatus === 'VitalsRecorded' || apt.encounterStatus === 'CheckedIn' || apt.encounterStatus === 'InConsultation'" (click)="startConsultationView(apt)" class="btn btn-primary btn-xs" id="start-consult-{{apt.id}}">▶ Consult</button>
+                <button *ngIf="apt.status === 'Confirmed' && !apt.encounterStatus" (click)="noShowApt(apt.id)" class="btn btn-warning btn-xs" id="noshow-apt-{{apt.id}}">⚠ No-Show</button>
+                <button *ngIf="apt.status === 'Pending' || apt.status === 'Confirmed'" (click)="cancelApt(apt.id)" class="btn btn-outline btn-xs" id="cancel-apt-{{apt.id}}">Cancel</button>
+              </div>
             </div>
           </div>
         </div>
@@ -98,6 +101,67 @@ import { Subscription } from 'rxjs';
             </div>
           </div>
         </div>
+
+        <!-- Availability Management -->
+        <div class="glass-card" style="border-top: 4px solid #06b6d4;">
+          <h3 style="color: #06b6d4;" class="mb-4">Working Hours & Availability</h3>
+          <div class="flex gap-3 mb-4 items-center flex-wrap">
+            <select name="availDay" [(ngModel)]="newAvail.dayOfWeek" class="form-control" style="width: 140px;">
+              <option [ngValue]="1" style="color:black">Monday</option>
+              <option [ngValue]="2" style="color:black">Tuesday</option>
+              <option [ngValue]="3" style="color:black">Wednesday</option>
+              <option [ngValue]="4" style="color:black">Thursday</option>
+              <option [ngValue]="5" style="color:black">Friday</option>
+              <option [ngValue]="6" style="color:black">Saturday</option>
+              <option [ngValue]="0" style="color:black">Sunday</option>
+            </select>
+            <input type="time" name="availStart" [(ngModel)]="newAvail.startTime" class="form-control" style="width:130px;">
+            <span class="text-muted">to</span>
+            <input type="time" name="availEnd" [(ngModel)]="newAvail.endTime" class="form-control" style="width:130px;">
+            <select name="availSlot" [(ngModel)]="newAvail.slotDurationMinutes" class="form-control" style="width:130px;">
+              <option [ngValue]="15" style="color:black">15 min slots</option>
+              <option [ngValue]="20" style="color:black">20 min slots</option>
+              <option [ngValue]="30" style="color:black">30 min slots</option>
+              <option [ngValue]="45" style="color:black">45 min slots</option>
+              <option [ngValue]="60" style="color:black">60 min slots</option>
+            </select>
+            <button (click)="addAvailability()" class="btn btn-primary" id="add-availability-btn">Save</button>
+          </div>
+          <div *ngIf="availabilities.length === 0" class="text-muted text-sm">No availability set. Add working hours above.</div>
+          <div *ngIf="availabilities.length > 0" class="grid grid-cols-3 gap-4 mt-4">
+            <div *ngFor="let av of availabilities" class="inner-card flex justify-between items-center">
+              <div class="text-sm">
+                <strong class="text-main">{{ getDayName(av.dayOfWeek) }}</strong><br>
+                <span class="text-muted">{{ av.startTime }} – {{ av.endTime }}</span><br>
+                <span style="color:#06b6d4;font-size:0.75rem;">{{ av.slotDurationMinutes }} min slots</span>
+              </div>
+              <button (click)="deleteAvailability(av.id)" class="btn btn-danger text-xs p-2">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blocked Dates -->
+        <div class="glass-card" style="border-top: 4px solid #f59e0b;">
+          <h3 style="color: #f59e0b;" class="mb-4">Blocked Dates / Vacation</h3>
+          <div class="flex gap-3 mb-4 items-center flex-wrap">
+            <input type="date" name="blockedDate" [(ngModel)]="newBlockedDate.blockedDate" class="form-control" style="width:200px;" id="blocked-date-input">
+            <input type="text" name="blockedReason" [(ngModel)]="newBlockedDate.reason" placeholder="Reason (e.g. Annual Leave)" class="form-control" style="width:220px;">
+            <button (click)="addBlockedDate()" class="btn btn-warning" id="add-blocked-date-btn">Block Date</button>
+          </div>
+          <div *ngIf="blockedDates.length === 0" class="text-muted text-sm">No blocked dates. Add vacation or off days above.</div>
+          <div *ngIf="blockedDates.length > 0" class="flex gap-3 flex-wrap mt-4">
+            <div *ngFor="let bd of blockedDates" class="inner-card" style="min-width:180px;">
+              <div class="flex justify-between items-start">
+                <div>
+                  <strong class="text-main text-sm">{{ bd.blockedDate | date:'dd MMM yyyy' }}</strong><br>
+                  <span class="text-muted text-xs">{{ bd.reason || 'No reason specified' }}</span>
+                </div>
+                <button (click)="removeBlockedDate(bd.id)" class="btn btn-danger text-xs p-1">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -111,15 +175,9 @@ import { Subscription } from 'rxjs';
       <div class="grid grid-cols-2 gap-8">
         <div class="flex-col gap-6">
           <div>
-            <h4 class="mb-2">Status</h4>
-            <select [(ngModel)]="consultationData.status" class="form-control" style="width: 200px;">
-              <option value="start" style="color: black;">Start</option>
-              <option value="complete" style="color: black;">Complete</option>
-              <option value="cancel" style="color: black;">Cancel</option>
-            </select>
-          </div>
-
-          <div>
+            <h4 class="mb-2">Diagnosis</h4>
+            <input type="text" [(ngModel)]="consultationData.diagnosis" placeholder="Primary Diagnosis" class="form-control w-full mb-4">
+            
             <h4 class="mb-2">Notes (Speech to Text Available)</h4>
             <div class="mb-3">
               <button (click)="toggleSpeech()" class="btn w-full" [ngClass]="speechService.isListening ? 'btn-danger' : 'btn-secondary'">
@@ -133,33 +191,13 @@ import { Subscription } from 'rxjs';
 
         <div class="flex-col gap-6">
           <div>
-            <h4 class="mb-4">Vitals</h4>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="form-label text-xs">Heart Rate (bpm)</label>
-                <input type="text" [(ngModel)]="newVital.heartRate" placeholder="e.g. 72" class="form-control">
-              </div>
-              <div>
-                <label class="form-label text-xs">Blood Pressure (mmHg)</label>
-                <input type="text" [(ngModel)]="newVital.bloodPressure" placeholder="e.g. 120/80" class="form-control">
-              </div>
-              <div>
-                <label class="form-label text-xs">Temperature (°F)</label>
-                <input type="text" [(ngModel)]="newVital.temperature" placeholder="e.g. 98.6" class="form-control">
-              </div>
-              <div>
-                <label class="form-label text-xs">Weight (lbs)</label>
-                <input type="text" [(ngModel)]="newVital.weight" placeholder="e.g. 150" class="form-control">
-              </div>
-            </div>
-            <button (click)="addVitalToConsultation()" class="btn btn-primary w-full text-sm mb-3">Add Vital</button>
+            <h4 class="mb-4">Vitals (Read Only)</h4>
+            <p class="text-sm text-muted mb-4">Vitals are recorded by the Nurse during check-in.</p>
             
-            <ul *ngIf="consultationData.vitals.length > 0" class="list-none pl-0 m-0 space-y-2">
-               <li *ngFor="let v of consultationData.vitals; let i = index" class="inner-card flex justify-between items-center p-2 text-sm">
-                  <span>HR: {{ v.heartRate }} bpm, BP: {{ v.bloodPressure }} mmHg, Temp: {{ v.temperature }} °F, Weight: {{ v.weight }} lbs</span>
-                  <button (click)="consultationData.vitals.splice(i, 1)" class="btn btn-danger text-xs p-1" style="min-width: 30px;">X</button>
-               </li>
-            </ul>
+            <!-- Vitals would be passed down via currentConsultation if fetched -->
+            <div class="inner-card p-3 text-sm" *ngIf="currentConsultation.vitals && currentConsultation.vitals.length > 0">
+               <span>Vitals recorded.</span>
+            </div>
           </div>
 
           <div>
@@ -276,21 +314,23 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   appointments: any[] = [];
   careProviders: any[] = [];
   scheduleSlots: any[] = [];
+  availabilities: any[] = [];
+  blockedDates: any[] = [];
 
   newProvider = { name: '', role: '', phoneNumber: '' };
   newSlot = { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true };
+  newAvail = { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', slotDurationMinutes: 30 };
+  newBlockedDate = { blockedDate: '', reason: '' };
 
   // Consultation View State
   inConsultation = false;
   currentConsultation: any = null;
   consultationData: any = {
-    status: 'start',
     notes: '',
-    vitals: [],
+    diagnosis: '',
     orders: []
   };
 
-  newVital = { heartRate: '', bloodPressure: '', temperature: '', weight: '' };
   newOrder = { orderType: 'Lab', description: '' };
 
   // Details Modal State
@@ -305,6 +345,8 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.loadAppointments();
     this.loadCareProviders();
     this.loadScheduleSlots();
+    this.loadAvailability();
+    this.loadBlockedDates();
 
     this.speechSub = this.speechService.transcript$.subscribe(text => {
       if (this.consultationData.notes) {
@@ -393,17 +435,126 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     return days[dayIndex] || 'Unknown';
   }
 
+  getStatusBadgeClass(status: string): string {
+    const map: Record<string, string> = {
+      'Pending': 'badge-warning',
+      'Confirmed': 'badge-primary',
+      'Completed': 'badge-success',
+      'Cancelled': 'badge-muted',
+      'Rejected': 'badge-danger',
+      'NoShow': 'badge-danger',
+      'start': 'badge-primary',
+      'SCHEDULED': 'badge-primary',
+      'Scheduled': 'badge-primary'
+    };
+    return map[status] || 'badge-muted';
+  }
+
+  // ─── Availability ───────────────────────────────────────────────────────────
+
+  loadAvailability() {
+    this.api.getAvailability().subscribe({
+      next: (data) => this.availabilities = data,
+      error: (err) => console.error('Failed to load availability', err)
+    });
+  }
+
+  addAvailability() {
+    if (!this.newAvail.startTime || !this.newAvail.endTime) return;
+    const payload = {
+      ...this.newAvail,
+      startTime: this.newAvail.startTime.length === 5 ? this.newAvail.startTime + ':00' : this.newAvail.startTime,
+      endTime: this.newAvail.endTime.length === 5 ? this.newAvail.endTime + ':00' : this.newAvail.endTime
+    };
+    this.api.createAvailability(payload).subscribe({
+      next: () => this.loadAvailability(),
+      error: (err) => console.error('Failed to add availability', err)
+    });
+  }
+
+  deleteAvailability(id: number) {
+    this.api.deleteAvailability(id).subscribe({
+      next: () => this.availabilities = this.availabilities.filter(a => a.id !== id),
+      error: (err) => console.error('Failed to delete availability', err)
+    });
+  }
+
+  // ─── Blocked Dates ───────────────────────────────────────────────────────────
+
+  loadBlockedDates() {
+    this.api.getBlockedDates().subscribe({
+      next: (data) => this.blockedDates = data,
+      error: (err) => console.error('Failed to load blocked dates', err)
+    });
+  }
+
+  addBlockedDate() {
+    if (!this.newBlockedDate.blockedDate) return;
+    this.api.addBlockedDate(this.newBlockedDate).subscribe({
+      next: () => { this.loadBlockedDates(); this.newBlockedDate = { blockedDate: '', reason: '' }; },
+      error: (err) => console.error('Failed to add blocked date', err)
+    });
+  }
+
+  removeBlockedDate(id: number) {
+    this.api.removeBlockedDate(id).subscribe({
+      next: () => this.blockedDates = this.blockedDates.filter(b => b.id !== id),
+      error: (err) => console.error('Failed to remove blocked date', err)
+    });
+  }
+
+  // ─── Appointment Lifecycle Actions ────────────────────────────────────────────
+
+  confirmApt(id: number) {
+    this.api.confirmAppointment(id).subscribe({
+      next: () => this.loadAppointments(),
+      error: (err) => alert(err.error?.message || 'Failed to confirm')
+    });
+  }
+
+  rejectApt(id: number) {
+    this.api.rejectAppointment(id).subscribe({
+      next: () => this.loadAppointments(),
+      error: (err) => alert(err.error?.message || 'Failed to reject')
+    });
+  }
+
+  noShowApt(id: number) {
+    this.api.markNoShow(id).subscribe({
+      next: () => this.loadAppointments(),
+      error: (err) => alert(err.error?.message || 'Failed to mark no-show')
+    });
+  }
+
+  cancelApt(id: number) {
+    if (!confirm('Cancel this appointment?')) return;
+    this.api.cancelAppointment(id).subscribe({
+      next: () => this.loadAppointments(),
+      error: (err) => alert(err.error?.message || 'Failed to cancel')
+    });
+  }
+
   // --- Consultation Flow ---
 
-  startConsultation(apt: any) {
+  startConsultationView(apt: any) {
+    if (!apt.encounterId) {
+      alert("No encounter found. Patient must check in first.");
+      return;
+    }
     this.currentConsultation = apt;
     this.consultationData = {
-      status: apt.status || 'start',
       notes: apt.notes || '',
-      vitals: [],
+      diagnosis: '',
       orders: []
     };
     this.inConsultation = true;
+    
+    if (apt.encounterStatus !== 'InConsultation') {
+      this.api.startConsultation(apt.encounterId).subscribe({
+        next: () => console.log('Consultation started in backend'),
+        error: (err) => console.error('Failed to start consultation', err)
+      });
+    }
   }
 
   cancelConsultationView() {
@@ -422,18 +573,6 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  addVitalToConsultation() {
-    if (this.newVital.heartRate && !new RegExp('^\\d{2,3}$').test(this.newVital.heartRate)) return alert('Invalid Heart Rate (e.g. 72)');
-    if (this.newVital.bloodPressure && !new RegExp('^\\d{2,3}/\\d{2,3}$').test(this.newVital.bloodPressure)) return alert('Invalid BP (e.g. 120/80)');
-    if (this.newVital.temperature && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.newVital.temperature)) return alert('Invalid Temp (e.g. 98.6)');
-    if (this.newVital.weight && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.newVital.weight)) return alert('Invalid Weight (e.g. 150)');
-
-    if (this.newVital.heartRate || this.newVital.bloodPressure || this.newVital.temperature || this.newVital.weight) {
-      this.consultationData.vitals.push({ ...this.newVital });
-      this.newVital = { heartRate: '', bloodPressure: '', temperature: '', weight: '' };
-    }
-  }
-
   addOrderToConsultation() {
     if (this.newOrder.description) {
       this.consultationData.orders.push({ ...this.newOrder });
@@ -442,9 +581,9 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   saveConsultation() {
-    this.api.saveConsultation(this.currentConsultation.id, this.consultationData).subscribe({
+    this.api.completeConsultation(this.currentConsultation.encounterId, this.consultationData).subscribe({
       next: () => {
-        alert('Consultation saved successfully!');
+        alert('Consultation completed and saved successfully!');
         if (this.speechService.isListening) {
           this.speechService.stop();
         }
@@ -452,7 +591,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
         this.currentConsultation = null;
         this.loadAppointments(); // Refresh list
       },
-      error: (err) => console.error('Failed to save consultation', err)
+      error: (err) => alert('Failed to complete consultation: ' + (err.error?.message || err.message))
     });
   }
 

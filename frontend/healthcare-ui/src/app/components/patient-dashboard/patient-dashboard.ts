@@ -40,40 +40,10 @@ import { ApiService } from '../../services/api.service';
                 <strong class="text-main">Latest Vitals:</strong>
                 <ul class="list-none pl-0 m-0 text-muted mt-1">
                   <li *ngIf="apt.vitals[0].heartRate">Heart Rate: {{ apt.vitals[0].heartRate }} bpm</li>
-                  <li *ngIf="apt.vitals[0].bloodPressure">BP: {{ apt.vitals[0].bloodPressure }} mmHg</li>
+                  <li *ngIf="apt.vitals[0].bloodPressureSystolic">BP: {{ apt.vitals[0].bloodPressureSystolic }}/{{ apt.vitals[0].bloodPressureDiastolic }} mmHg</li>
                   <li *ngIf="apt.vitals[0].temperature">Temp: {{ apt.vitals[0].temperature }} °F</li>
                   <li *ngIf="apt.vitals[0].weight">Weight: {{ apt.vitals[0].weight }} lbs</li>
                 </ul>
-              </div>
-
-              <div class="mt-4" *ngIf="activeVitalForm !== apt.id">
-                <button (click)="openVitalForm(apt.id); $event.stopPropagation()" class="btn btn-secondary w-full text-sm">Add Vitals</button>
-              </div>
-
-              <div class="mt-4 p-4" style="background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);" *ngIf="activeVitalForm === apt.id" (click)="$event.stopPropagation()">
-                <h4 class="mb-3 text-sm font-bold text-secondary">Enter Vitals</h4>
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label class="form-label text-xs">Heart Rate (bpm)</label>
-                    <input type="text" [(ngModel)]="vitalForm.heartRate" placeholder="e.g. 72" class="form-control" />
-                  </div>
-                  <div>
-                    <label class="form-label text-xs">Blood Pressure (mmHg)</label>
-                    <input type="text" [(ngModel)]="vitalForm.bloodPressure" placeholder="e.g. 120/80" class="form-control" />
-                  </div>
-                  <div>
-                    <label class="form-label text-xs">Temperature (°F)</label>
-                    <input type="text" [(ngModel)]="vitalForm.temperature" placeholder="e.g. 98.6" class="form-control" />
-                  </div>
-                  <div>
-                    <label class="form-label text-xs">Weight (lbs)</label>
-                    <input type="text" [(ngModel)]="vitalForm.weight" placeholder="e.g. 150" class="form-control" />
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <button (click)="submitVitals(apt.id)" class="btn btn-primary flex-1 text-sm">Save</button>
-                  <button (click)="closeVitalForm()" class="btn btn-outline flex-1 text-sm">Cancel</button>
-                </div>
               </div>
 
             </div>
@@ -140,7 +110,7 @@ import { ApiService } from '../../services/api.service';
               </div>
               <ul class="list-none pl-0 m-0 grid grid-cols-2 gap-2 text-muted">
                 <li *ngIf="vital.heartRate">Heart Rate: {{ vital.heartRate }} bpm</li>
-                <li *ngIf="vital.bloodPressure">Blood Pressure: {{ vital.bloodPressure }} mmHg</li>
+                <li *ngIf="vital.bloodPressureSystolic">Blood Pressure: {{ vital.bloodPressureSystolic }}/{{ vital.bloodPressureDiastolic }} mmHg</li>
                 <li *ngIf="vital.temperature">Temperature: {{ vital.temperature }} °F</li>
                 <li *ngIf="vital.weight">Weight: {{ vital.weight }} lbs</li>
               </ul>
@@ -173,13 +143,7 @@ import { ApiService } from '../../services/api.service';
 })
 export class PatientDashboardComponent implements OnInit {
   appointments: any[] = [];
-  activeVitalForm: number | null = null;
-  vitalForm: any = {
-    heartRate: '',
-    bloodPressure: '',
-    temperature: '',
-    weight: ''
-  };
+
 
   // Details Modal State
   selectedAppointment: any = null;
@@ -198,34 +162,6 @@ export class PatientDashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load appointments', err);
-      }
-    });
-  }
-
-  openVitalForm(appointmentId: number) {
-    this.activeVitalForm = appointmentId;
-    this.vitalForm = { heartRate: '', bloodPressure: '', temperature: '', weight: '' };
-  }
-
-  closeVitalForm() {
-    this.activeVitalForm = null;
-  }
-
-  submitVitals(appointmentId: number) {
-    if (this.vitalForm.heartRate && !new RegExp('^\\d{2,3}$').test(this.vitalForm.heartRate)) return alert('Invalid Heart Rate (e.g. 72)');
-    if (this.vitalForm.bloodPressure && !new RegExp('^\\d{2,3}/\\d{2,3}$').test(this.vitalForm.bloodPressure)) return alert('Invalid BP (e.g. 120/80)');
-    if (this.vitalForm.temperature && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.vitalForm.temperature)) return alert('Invalid Temp (e.g. 98.6)');
-    if (this.vitalForm.weight && !new RegExp('^\\d{2,3}(\\.\\d{1,2})?$').test(this.vitalForm.weight)) return alert('Invalid Weight (e.g. 150)');
-
-    this.api.addVitals(appointmentId, this.vitalForm).subscribe({
-      next: () => {
-        alert('Vitals saved successfully!');
-        this.closeVitalForm();
-        this.loadAppointments();
-      },
-      error: (err) => {
-        console.error('Failed to save vitals', err);
-        alert('Failed to save vitals');
       }
     });
   }

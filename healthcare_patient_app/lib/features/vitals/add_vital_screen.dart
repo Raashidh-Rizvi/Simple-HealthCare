@@ -16,9 +16,10 @@ class AddVitalScreen extends StatefulWidget {
 }
 
 class _AddVitalScreenState extends State<AddVitalScreen> {
-  final VitalService _vitalService = VitalService();
+  final _vitalService = VitalService();
   final _heartRateController = TextEditingController();
-  final _bloodPressureController = TextEditingController();
+  final _bpSystolicController = TextEditingController();
+  final _bpDiastolicController = TextEditingController();
   final _temperatureController = TextEditingController();
   final _weightController = TextEditingController();
   bool _isLoading = false;
@@ -27,10 +28,12 @@ class _AddVitalScreenState extends State<AddVitalScreen> {
     setState(() => _isLoading = true);
 
     final vital = Vital(
-      heartRate: _heartRateController.text,
-      bloodPressure: _bloodPressureController.text,
-      temperature: _temperatureController.text,
-      weight: _weightController.text,
+      heartRate: _heartRateController.text.isNotEmpty ? _heartRateController.text : null,
+      bloodPressureSystolic: int.tryParse(_bpSystolicController.text),
+      bloodPressureDiastolic: int.tryParse(_bpDiastolicController.text),
+      temperature: _temperatureController.text.isNotEmpty ? _temperatureController.text : null,
+      weight: _weightController.text.isNotEmpty ? _weightController.text : null,
+      isHomeReading: true, // Mark as home reading
     );
 
     try {
@@ -67,10 +70,28 @@ class _AddVitalScreenState extends State<AddVitalScreen> {
               icon: Icons.favorite_border,
             ),
             const SizedBox(height: 16),
-            CustomTextField(
-              controller: _bloodPressureController,
-              hintText: 'Blood Pressure (e.g., 120/80)',
-              icon: Icons.bloodtype_outlined,
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    controller: _bpSystolicController,
+                    hintText: 'BP Systolic',
+                    icon: Icons.bloodtype_outlined,
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text('/', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(
+                  child: CustomTextField(
+                    controller: _bpDiastolicController,
+                    hintText: 'BP Diastolic',
+                    icon: Icons.bloodtype_outlined,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             CustomTextField(

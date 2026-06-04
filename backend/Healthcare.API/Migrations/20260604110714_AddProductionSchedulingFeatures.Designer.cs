@@ -3,6 +3,7 @@ using System;
 using Healthcare.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Healthcare.API.Migrations
 {
     [DbContext(typeof(HealthcareDbContext))]
-    partial class HealthcareDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260604110714_AddProductionSchedulingFeatures")]
+    partial class AddProductionSchedulingFeatures
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,6 +44,9 @@ namespace Healthcare.API.Migrations
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("interval");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
 
                     b.Property<int>("PatientId")
                         .HasColumnType("integer");
@@ -218,54 +224,6 @@ namespace Healthcare.API.Migrations
                     b.ToTable("DoctorBlockedDates");
                 });
 
-            modelBuilder.Entity("Healthcare.API.Models.Encounter", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AppointmentId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("CheckInTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("ConsultationEndTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("ConsultationStartTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Diagnosis")
-                        .HasColumnType("text");
-
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<int>("PatientId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppointmentId")
-                        .IsUnique();
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("PatientId");
-
-                    b.ToTable("Encounters");
-                });
-
             modelBuilder.Entity("Healthcare.API.Models.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -306,6 +264,9 @@ namespace Healthcare.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -313,16 +274,13 @@ namespace Healthcare.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("EncounterId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("OrderType")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EncounterId");
+                    b.HasIndex("AppointmentId");
 
                     b.ToTable("Orders");
                 });
@@ -441,41 +399,17 @@ namespace Healthcare.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("BMI")
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BloodPressure")
                         .HasColumnType("text");
-
-                    b.Property<int?>("BloodPressureDiastolic")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("BloodPressureSystolic")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BloodSugar")
-                        .HasColumnType("text");
-
-                    b.Property<int>("EncounterId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("HeartRate")
                         .HasColumnType("text");
 
-                    b.Property<string>("Height")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsHomeReading")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("OxygenSaturation")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("RecordedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("RespiratoryRate")
-                        .HasColumnType("text");
 
                     b.Property<string>("Temperature")
                         .HasColumnType("text");
@@ -485,7 +419,7 @@ namespace Healthcare.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EncounterId");
+                    b.HasIndex("AppointmentId");
 
                     b.ToTable("Vitals");
                 });
@@ -553,33 +487,6 @@ namespace Healthcare.API.Migrations
                     b.Navigation("Doctor");
                 });
 
-            modelBuilder.Entity("Healthcare.API.Models.Encounter", b =>
-                {
-                    b.HasOne("Healthcare.API.Models.Appointment", "Appointment")
-                        .WithOne("Encounter")
-                        .HasForeignKey("Healthcare.API.Models.Encounter", "AppointmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Healthcare.API.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Healthcare.API.Models.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Appointment");
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Patient");
-                });
-
             modelBuilder.Entity("Healthcare.API.Models.Notification", b =>
                 {
                     b.HasOne("Healthcare.API.Models.User", "User")
@@ -593,13 +500,13 @@ namespace Healthcare.API.Migrations
 
             modelBuilder.Entity("Healthcare.API.Models.Order", b =>
                 {
-                    b.HasOne("Healthcare.API.Models.Encounter", "Encounter")
+                    b.HasOne("Healthcare.API.Models.Appointment", "Appointment")
                         .WithMany("Orders")
-                        .HasForeignKey("EncounterId")
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Encounter");
+                    b.Navigation("Appointment");
                 });
 
             modelBuilder.Entity("Healthcare.API.Models.Patient", b =>
@@ -626,18 +533,20 @@ namespace Healthcare.API.Migrations
 
             modelBuilder.Entity("Healthcare.API.Models.Vital", b =>
                 {
-                    b.HasOne("Healthcare.API.Models.Encounter", "Encounter")
+                    b.HasOne("Healthcare.API.Models.Appointment", "Appointment")
                         .WithMany("Vitals")
-                        .HasForeignKey("EncounterId")
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Encounter");
+                    b.Navigation("Appointment");
                 });
 
             modelBuilder.Entity("Healthcare.API.Models.Appointment", b =>
                 {
-                    b.Navigation("Encounter");
+                    b.Navigation("Orders");
+
+                    b.Navigation("Vitals");
                 });
 
             modelBuilder.Entity("Healthcare.API.Models.Doctor", b =>
@@ -651,13 +560,6 @@ namespace Healthcare.API.Migrations
                     b.Navigation("CareProviders");
 
                     b.Navigation("ScheduleSlots");
-                });
-
-            modelBuilder.Entity("Healthcare.API.Models.Encounter", b =>
-                {
-                    b.Navigation("Orders");
-
-                    b.Navigation("Vitals");
                 });
 
             modelBuilder.Entity("Healthcare.API.Models.Patient", b =>

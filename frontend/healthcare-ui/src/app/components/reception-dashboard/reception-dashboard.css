@@ -1,0 +1,50 @@
+.dashboard-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.content-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.badge-pending { background-color: #fef3c7; color: #92400e; }
+.badge-confirmed { background-color: #d1fae5; color: #065f46; }
+.badge-checkin { background-color: #e0e7ff; color: #3730a3; }
+.badge-vitals { background-color: #f3e8ff; color: #6b21a8; }
+.badge-consult { background-color: #fee2e2; color: #991b1b; }
+.badge-completed { background-color: #d1fae5; color: #065f46; }
+
+.table th {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #3b82f6;
+}

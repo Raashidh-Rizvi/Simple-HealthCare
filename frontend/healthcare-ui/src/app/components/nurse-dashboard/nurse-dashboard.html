@@ -1,0 +1,118 @@
+<div class="dashboard-container">
+  <div class="header">
+    <h1>Nurse Dashboard</h1>
+    <button class="btn btn-secondary" (click)="logout()">Logout</button>
+  </div>
+
+  <div class="card content-card">
+    <h2>Today's Patient Encounters</h2>
+    
+    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    <div *ngIf="success" class="alert alert-success">{{ success }}</div>
+
+    <div *ngIf="loading" class="loading">Loading encounters...</div>
+
+    <div *ngIf="!loading && encounters.length === 0" class="no-data">
+      No active encounters today.
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && encounters.length > 0">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let enc of encounters">
+            <td>{{ enc.appointmentTime || (enc.checkInTime | date:'shortTime') }}</td>
+            <td>{{ enc.patientName }}</td>
+            <td>{{ enc.doctorName }}</td>
+            <td>
+              <span class="badge" 
+                    [ngClass]="{
+                      'badge-checkin': enc.status == 'CheckedIn',
+                      'badge-vitals': enc.status == 'VitalsRecorded',
+                      'badge-consult': enc.status == 'InConsultation'
+                    }">
+                {{ enc.status }}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-primary btn-sm" (click)="openVitalsModal(enc)">
+                Record Vitals
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Vitals Modal -->
+  <div class="modal-backdrop" *ngIf="selectedEncounter"></div>
+  <div class="modal" *ngIf="selectedEncounter">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Record Vitals - {{ selectedEncounter.patientName }}</h3>
+        <button class="close-btn" (click)="closeVitalsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="submitVitals()">
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Heart Rate (bpm)</label>
+              <input type="number" name="hr" [(ngModel)]="vitalsData.heartRate">
+            </div>
+            <div class="form-group half">
+              <label>Respiratory Rate</label>
+              <input type="text" name="rr" [(ngModel)]="vitalsData.respiratoryRate">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Systolic BP</label>
+              <input type="number" name="bps" [(ngModel)]="vitalsData.bloodPressureSystolic">
+            </div>
+            <div class="form-group half">
+              <label>Diastolic BP</label>
+              <input type="number" name="bpd" [(ngModel)]="vitalsData.bloodPressureDiastolic">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Temperature (C/F)</label>
+              <input type="number" step="0.1" name="temp" [(ngModel)]="vitalsData.temperature">
+            </div>
+            <div class="form-group half">
+              <label>SpO2 (%)</label>
+              <input type="text" name="spo2" [(ngModel)]="vitalsData.oxygenSaturation">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Weight (kg)</label>
+              <input type="number" step="0.1" name="weight" [(ngModel)]="vitalsData.weight">
+            </div>
+            <div class="form-group half">
+              <label>Height</label>
+              <input type="text" name="height" [(ngModel)]="vitalsData.height">
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeVitalsModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Vitals</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -9,55 +9,98 @@ import { ApiService } from '../../services/api.service';
   standalone: true,
   imports: [FormsModule, RouterLink, CommonModule],
   template: `
-    <div class="flex items-center justify-center mt-8">
-      <div class="glass-card w-full" style="max-width: 420px;">
-        <div class="text-center mb-6">
-          <h2 class="mb-2">Create Account</h2>
-          <p class="text-muted text-sm">Join our healthcare platform</p>
+    <div class="register-wrapper">
+      <div class="register-card">
+
+        <!-- Header -->
+        <div class="register-header">
+          <div class="register-icon">🏥</div>
+          <h2>Patient Registration</h2>
+          <p class="register-subtitle">Create your patient account to get started</p>
         </div>
 
-        <form (ngSubmit)="onRegister()" ngNativeValidate>
-          <div class="form-group">
-            <label class="form-label">Full Name</label>
-            <input type="text" class="form-control" placeholder="John Doe" [(ngModel)]="fullName" name="fullName" required>
+        <!-- Info banner -->
+        <div class="info-banner">
+          <span class="info-icon">ℹ️</span>
+          <span>Healthcare professionals are registered by administrators only.</span>
+        </div>
+
+        <!-- Form -->
+        <form (ngSubmit)="onRegister()" ngNativeValidate class="register-form">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="reg-firstname">First Name</label>
+              <input
+                id="reg-firstname"
+                type="text"
+                class="form-control"
+                placeholder="John"
+                [(ngModel)]="firstName"
+                name="firstName"
+                required
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-lastname">Last Name</label>
+              <input
+                id="reg-lastname"
+                type="text"
+                class="form-control"
+                placeholder="Doe"
+                [(ngModel)]="lastName"
+                name="lastName"
+                required
+              >
+            </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input type="email" class="form-control" placeholder="user@example.com" [(ngModel)]="email" name="email" required>
+            <label class="form-label" for="reg-email">Email Address</label>
+            <input
+              id="reg-email"
+              type="email"
+              class="form-control"
+              placeholder="patient@example.com"
+              [(ngModel)]="email"
+              name="email"
+              required
+            >
           </div>
 
           <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" class="form-control" placeholder="••••••••" [(ngModel)]="password" name="password" required minlength="6">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Role</label>
-            <select class="form-control" [(ngModel)]="role" name="role" required>
-              <option value="patient">Patient</option>
-              <option value="doctor">Doctor</option>
-            </select>
-          </div>
-
-          <div class="form-group" *ngIf="role === 'doctor'">
-            <label class="form-label">Specialization</label>
-            <select class="form-control" [(ngModel)]="specialization" name="specialization" required>
-              <option value="" disabled>Select Specialization</option>
-              <option value="General Physician">General Physician</option>
-              <option value="Cardiologist">Cardiologist</option>
-              <option value="Dermatologist">Dermatologist</option>
-              <option value="Pediatrician">Pediatrician</option>
-              <option value="Neurologist">Neurologist</option>
-              <option value="Orthopedic">Orthopedic</option>
-              <option value="Psychiatrist">Psychiatrist</option>
-            </select>
+            <label class="form-label" for="reg-password">Password</label>
+            <div class="input-with-toggle">
+              <input
+                id="reg-password"
+                [type]="showPassword ? 'text' : 'password'"
+                class="form-control"
+                placeholder="••••••••"
+                [(ngModel)]="password"
+                name="password"
+                required
+                minlength="6"
+              >
+              <button type="button" class="toggle-pwd" (click)="showPassword = !showPassword" tabindex="-1">
+                {{ showPassword ? '🙈' : '👁️' }}
+              </button>
+            </div>
+            <span class="hint">Minimum 6 characters</span>
           </div>
 
-          <button type="submit" class="btn btn-primary w-full mt-6">Register</button>
-          
-          <div class="text-center mt-6">
-            <a routerLink="/login" class="text-sm">Already have an account? Sign In</a>
+          <!-- Error message -->
+          <div class="error-msg" *ngIf="errorMessage">
+            ⚠️ {{ errorMessage }}
+          </div>
+
+          <button id="register-submit-btn" type="submit" class="btn-register" [disabled]="isLoading">
+            <span *ngIf="!isLoading">Create Account</span>
+            <span *ngIf="isLoading" class="spinner">⏳ Creating...</span>
+          </button>
+
+          <div class="register-footer">
+            Already have an account?
+            <a routerLink="/login">Sign In</a>
           </div>
         </form>
       </div>
@@ -66,39 +109,45 @@ import { ApiService } from '../../services/api.service';
   styleUrl: './register.css'
 })
 export class RegisterComponent {
-  fullName = '';
+  firstName = '';
+  lastName = '';
   email = '';
   password = '';
-  role = 'patient';
-  specialization = '';
+  showPassword = false;
+  isLoading = false;
+  errorMessage = '';
 
   constructor(private router: Router, private api: ApiService) {}
 
   onRegister() {
-    if (!this.fullName || !this.email || !this.password || !this.role || (this.role === 'doctor' && !this.specialization)) {
-      alert('Please fill out all required fields correctly.');
+    this.errorMessage = '';
+
+    if (!this.firstName.trim() || !this.lastName.trim() || !this.email.trim() || !this.password) {
+      this.errorMessage = 'Please fill out all required fields.';
       return;
     }
 
-    const parts = this.fullName.split(' ');
-    const firstName = parts[0] || '';
-    const lastName = parts.slice(1).join(' ') || '.';
-    
+    if (this.password.length < 6) {
+      this.errorMessage = 'Password must be at least 6 characters.';
+      return;
+    }
+
+    this.isLoading = true;
+
     this.api.register({
-      email: this.email,
+      email: this.email.trim(),
       password: this.password,
-      role: this.role,
-      firstName,
-      lastName,
-      specialization: this.role === 'doctor' ? this.specialization : undefined
+      firstName: this.firstName.trim(),
+      lastName: this.lastName.trim()
     }).subscribe({
       next: () => {
+        this.isLoading = false;
         this.router.navigate(['/login']);
       },
       error: (err) => {
-        alert('Registration failed: ' + (err.error?.message || err.message));
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'Registration failed. Please try again.';
       }
     });
   }
 }
-
