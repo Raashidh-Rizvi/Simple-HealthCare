@@ -14,7 +14,8 @@
 /* Left Sidebar */
 .sidebar {
   width: 280px;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--surface-elevated);
+  backdrop-filter: var(--glass-blur);
   border-right: 1px solid var(--surface-border);
   display: flex;
   flex-direction: column;
@@ -55,7 +56,7 @@
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--glass-inner-hover-bg);
   color: var(--text-main);
 }
 
@@ -83,7 +84,7 @@
 /* Top Bar */
 .top-bar {
   height: 70px;
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--surface);
   backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--surface-border);
   display: flex;
@@ -132,7 +133,7 @@
   font-weight: bold;
   padding: 2px 6px;
   border-radius: 10px;
-  border: 2px solid #0f172a;
+  border: 2px solid var(--background-base);
 }
 
 .doctor-profile-sm {
@@ -221,7 +222,7 @@
 .token-badge {
   font-size: 20px;
   font-weight: 800;
-  color: rgba(255,255,255,0.2);
+  color: var(--surface-border-hover);
   min-width: 50px;
 }
 
@@ -243,6 +244,6 @@
   background: transparent;
 }
 .dashboard-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-border-hover);
   border-radius: 4px;
 }

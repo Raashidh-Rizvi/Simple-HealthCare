@@ -255,8 +255,8 @@ interface Slot {
       background: rgba(99,102,241,0.15);
     }
     .step.done .step-num {
-      border-color: #22c55e;
-      color: #22c55e;
+      border-color: var(--secondary);
+      color: var(--secondary);
       background: rgba(34,197,94,0.15);
     }
     .step-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); }
@@ -269,7 +269,7 @@ interface Slot {
       margin-bottom: 1rem;
       transition: background 0.3s;
     }
-    .step-line.done { background: #22c55e; }
+    .step-line.done { background: var(--secondary); }
 
     /* Step content */
     .step-content { padding: 0.5rem 0; }
@@ -294,14 +294,14 @@ interface Slot {
       width: 48px; height: 48px; border-radius: 50%;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 1rem; color: white;
+      font-weight: 700; font-size: 1rem; color: var(--text-inverse);
       flex-shrink: 0;
     }
     .doctor-info { flex: 1; }
     .doctor-name { font-weight: 600; margin-bottom: 0.15rem; }
     .doctor-spec { color: var(--primary, #6366f1); font-size: 0.85rem; margin-bottom: 0.25rem; }
     .doctor-meta { display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted, #94a3b8); }
-    .fee-badge { background: rgba(34,197,94,0.15); color: #22c55e; padding: 0.1rem 0.5rem; border-radius: 4px; }
+    .fee-badge { background: rgba(34,197,94,0.15); color: var(--secondary); padding: 0.1rem 0.5rem; border-radius: 4px; }
     .doctor-check { color: var(--primary, #6366f1); font-size: 1.2rem; font-weight: 700; }
 
     /* Date input */
@@ -330,7 +330,7 @@ interface Slot {
     .slot-btn.selected {
       border-color: var(--primary, #6366f1);
       background: var(--primary, #6366f1);
-      color: white;
+      color: var(--text-inverse);
     }
     .no-slots { text-align: center; padding: 2rem; color: var(--text-muted, #94a3b8); }
     .no-slots-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
@@ -364,7 +364,7 @@ interface Slot {
     .alert-error {
       background: rgba(239,68,68,0.15);
       border: 1px solid rgba(239,68,68,0.3);
-      color: #f87171;
+      color: var(--danger);
       padding: 0.75rem 1rem;
       border-radius: 8px;
       margin: 1rem 0;
@@ -384,7 +384,7 @@ interface Slot {
     /* Success */
     .success-screen { text-align: center; padding: 2rem 0; }
     .success-icon { font-size: 3.5rem; margin-bottom: 1rem; }
-    .success-title { font-size: 1.5rem; font-weight: 700; color: #22c55e; margin-bottom: 0.5rem; }
+    .success-title { font-size: 1.5rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.5rem; }
 
     .mt-4 { margin-top: 1rem; }
     .mt-6 { margin-top: 1.5rem; }

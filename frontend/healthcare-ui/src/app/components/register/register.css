@@ -47,14 +47,14 @@
   margin: 0 0 6px;
   font-size: 26px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-main);
   letter-spacing: -0.5px;
 }
 
 .register-subtitle {
   margin: 0;
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 /* ── Info banner ── */
@@ -67,7 +67,7 @@
   border-radius: 10px;
   padding: 12px 14px;
   font-size: 13px;
-  color: #93c5fd;
+  color: var(--primary);
   margin-bottom: 24px;
   line-height: 1.5;
 }
@@ -100,7 +100,7 @@
   margin-bottom: 7px;
   font-size: 13px;
   font-weight: 500;
-  color: #cbd5e1;
+  color: var(--text-muted);
   letter-spacing: 0.01em;
 }
 
@@ -111,18 +111,18 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   font-size: 14px;
-  color: #f1f5f9;
+  color: var(--text-main);
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   box-sizing: border-box;
 }
 
 .form-control::placeholder {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--primary);
   background: rgba(59, 130, 246, 0.08);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
@@ -146,17 +146,17 @@
   cursor: pointer;
   font-size: 16px;
   padding: 4px;
-  color: #94a3b8;
+  color: var(--text-muted);
   line-height: 1;
 }
 
-.toggle-pwd:hover { color: #f1f5f9; }
+.toggle-pwd:hover { color: var(--text-main); }
 
 .hint {
   display: block;
   margin-top: 5px;
   font-size: 11.5px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 /* ── Error ── */
@@ -166,7 +166,7 @@
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13px;
-  color: #fca5a5;
+  color: var(--danger);
   margin-bottom: 16px;
 }
 
@@ -175,7 +175,7 @@
   width: 100%;
   padding: 13px;
   background: linear-gradient(135deg, #3b82f6, #6366f1);
-  color: #ffffff;
+  color: var(--text-main);
   font-size: 15px;
   font-weight: 600;
   border: none;
@@ -215,11 +215,11 @@
 .register-footer {
   text-align: center;
   font-size: 13.5px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .register-footer a {
-  color: #60a5fa;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
@@ -227,6 +227,6 @@
 }
 
 .register-footer a:hover {
-  color: #93c5fd;
+  color: var(--primary);
   text-decoration: underline;
 }

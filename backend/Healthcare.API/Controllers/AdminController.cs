@@ -97,6 +97,21 @@ namespace Healthcare.API.Controllers
             _context.Doctors.Add(doctor);
             await _context.SaveChangesAsync();
 
+            // Add default DoctorAvailabilities (Mon-Fri, 09:00 - 17:00, 30-min slots)
+            var workdays = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
+            foreach (var day in workdays)
+            {
+                _context.DoctorAvailabilities.Add(new DoctorAvailability
+                {
+                    DoctorId = doctor.Id,
+                    DayOfWeek = day,
+                    StartTime = new TimeSpan(9, 0, 0),
+                    EndTime = new TimeSpan(17, 0, 0),
+                    SlotDurationMinutes = 30
+                });
+            }
+            await _context.SaveChangesAsync();
+
             return Ok(new { message = "Doctor created", doctorId = doctor.Id });
         }
 

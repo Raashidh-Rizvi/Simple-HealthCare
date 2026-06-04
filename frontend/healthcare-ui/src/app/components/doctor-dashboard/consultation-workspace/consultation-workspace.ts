@@ -113,7 +113,7 @@ import { SpeechRecognitionService } from '../../../services/speech-recognition.s
                 <span class="badge badge-muted">{{ visit.type }}</span>
               </div>
               <p class="text-xs text-muted mb-2">{{ visit.diagnosis }}</p>
-              <button class="text-xs text-primary bg-transparent border-none cursor-pointer hover:underline p-0">View Details</button>
+              <button (click)="viewHistoryDetails(visit)" class="text-xs text-primary bg-transparent border-none cursor-pointer hover:underline p-0">View Details</button>
             </div>
           </div>
           
@@ -131,24 +131,38 @@ import { SpeechRecognitionService } from '../../../services/speech-recognition.s
                 <select class="form-control form-control-sm text-xs p-1 h-auto"><option>Twice Daily</option></select>
                 <select class="form-control form-control-sm text-xs p-1 h-auto"><option>5 Days</option></select>
               </div>
-              <button class="btn btn-primary w-full btn-xs">Add Prescription</button>
+              <button (click)="addPrescription()" class="btn btn-primary w-full btn-xs">Add Prescription</button>
             </div>
             
             <h4 class="text-sm font-semibold mt-4 mb-2 text-muted">Current Prescriptions</h4>
-            <div class="text-xs text-muted text-center p-4">No prescriptions added yet.</div>
+            <div *ngIf="currentPrescriptions.length === 0" class="text-xs text-muted text-center p-4">No prescriptions added yet.</div>
+            <div *ngIf="currentPrescriptions.length > 0" class="flex-col gap-2">
+               <div *ngFor="let p of currentPrescriptions; let i = index" class="inner-card p-2 flex justify-between items-center text-sm">
+                  <div>
+                    <strong>{{ p.name }}</strong> {{ p.dosage }}<br>
+                    <span class="text-xs text-muted">{{ p.frequency }} for {{ p.duration }}</span>
+                  </div>
+                  <button (click)="currentPrescriptions.splice(i, 1)" class="btn btn-danger btn-xs p-1">X</button>
+               </div>
+            </div>
           </div>
           
-          <!-- Labs Tab (Lab Ordering) -->
           <div *ngIf="activeTab === 'labs'" class="flex-col gap-4">
              <div class="grid grid-cols-2 gap-2">
-               <button class="btn btn-outline btn-xs justify-start">CBC</button>
-               <button class="btn btn-outline btn-xs justify-start">HbA1c</button>
-               <button class="btn btn-outline btn-xs justify-start">Lipid Profile</button>
-               <button class="btn btn-outline btn-xs justify-start">LFT</button>
+               <button (click)="orderLab('CBC')" class="btn btn-outline btn-xs justify-start">CBC</button>
+               <button (click)="orderLab('HbA1c')" class="btn btn-outline btn-xs justify-start">HbA1c</button>
+               <button (click)="orderLab('Lipid Profile')" class="btn btn-outline btn-xs justify-start">Lipid Profile</button>
+               <button (click)="orderLab('LFT')" class="btn btn-outline btn-xs justify-start">LFT</button>
              </div>
              
              <h4 class="text-sm font-semibold mt-4 mb-2 text-muted">Ordered Labs</h4>
-             <div class="text-xs text-muted text-center p-4">No labs ordered yet.</div>
+             <div *ngIf="orderedLabs.length === 0" class="text-xs text-muted text-center p-4">No labs ordered yet.</div>
+             <div *ngIf="orderedLabs.length > 0" class="flex-col gap-2">
+                <div *ngFor="let lab of orderedLabs; let j = index" class="inner-card p-2 flex justify-between items-center text-sm">
+                   <span>{{ lab }}</span>
+                   <button (click)="orderedLabs.splice(j, 1)" class="btn btn-danger btn-xs p-1">X</button>
+                </div>
+             </div>
           </div>
         </div>
       </div>
@@ -173,6 +187,9 @@ export class ConsultationWorkspaceComponent {
     plan: ''
   };
 
+  currentPrescriptions: any[] = [];
+  orderedLabs: string[] = [];
+
   constructor(public speechService: SpeechRecognitionService) {}
 
   getInitials(name: string): string {
@@ -196,6 +213,20 @@ export class ConsultationWorkspaceComponent {
       this.speechService.stop();
     } else {
       this.speechService.start();
+    }
+  }
+
+  viewHistoryDetails(visit: any) {
+    alert('Viewing details for visit on ' + visit.date);
+  }
+
+  addPrescription() {
+    this.currentPrescriptions.push({ name: 'Paracetamol', dosage: '500mg', frequency: 'Twice Daily', duration: '5 Days' });
+  }
+
+  orderLab(lab: string) {
+    if (!this.orderedLabs.includes(lab)) {
+      this.orderedLabs.push(lab);
     }
   }
 }

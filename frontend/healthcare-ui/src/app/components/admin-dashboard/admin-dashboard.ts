@@ -443,7 +443,7 @@ import { ApiService } from '../../services/api.service';
       width: 36px; height: 36px; border-radius: 50%;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.8rem; color: white;
+      font-weight: 700; font-size: 0.8rem; color: var(--text-inverse);
       flex-shrink: 0;
     }
     .cell-name { font-weight: 600; }
@@ -457,12 +457,12 @@ import { ApiService } from '../../services/api.service';
       font-size: 0.75rem;
       font-weight: 600;
     }
-    .status-pill.active { background: rgba(34,197,94,0.15); color: #22c55e; }
-    .status-pill.inactive { background: rgba(239,68,68,0.15); color: #f87171; }
+    .status-pill.active { background: rgba(34,197,94,0.15); color: var(--secondary); }
+    .status-pill.inactive { background: rgba(239,68,68,0.15); color: var(--danger); }
     .status-pending { background: rgba(245,158,11,0.15); color: #fbbf24; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
     .status-confirmed { background: rgba(99,102,241,0.15); color: #818cf8; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
-    .status-completed { background: rgba(34,197,94,0.15); color: #22c55e; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
-    .status-cancelled, .status-rejected, .status-noshow { background: rgba(239,68,68,0.15); color: #f87171; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
+    .status-completed { background: rgba(34,197,94,0.15); color: var(--secondary); padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
+    .status-cancelled, .status-rejected, .status-noshow { background: rgba(239,68,68,0.15); color: var(--danger); padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; }
 
     /* Filter row */
     .filter-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
@@ -482,7 +482,7 @@ import { ApiService } from '../../services/api.service';
     /* Misc */
     .count-badge { background: rgba(99,102,241,0.15); color: var(--primary, #6366f1); padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
     .count-pill { background: rgba(255,255,255,0.08); padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
-    .badge-blood { background: rgba(239,68,68,0.15); color: #f87171; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+    .badge-blood { background: rgba(239,68,68,0.15); color: var(--danger); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
     .loading-msg, .empty-msg { padding: 2rem; text-align: center; color: var(--text-muted, #94a3b8); }
     .mt-4 { margin-top: 1rem; }
     .mt-6 { margin-top: 1.5rem; }

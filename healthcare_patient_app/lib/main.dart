@@ -13,18 +13,112 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const HealthcarePatientApp(),
     ),
   );
 }
 
-class AppColors {
-  static const Color primary = Color(0xFF0F52BA); // Sapphire Blue
-  static const Color secondary = Color(0xFF3B82F6);
-  static const Color background = Color(0xFFF3F4F6);
-  static const Color textDark = Color(0xFF0F172A);
-  static const Color textLight = Color(0xFF64748B);
+class PremiumColors {
+  static const Color primary = Color(0xFF6366F1); // Indigo 500
+  static const Color secondary = Color(0xFF10B981); // Emerald 500
+  static const Color accent = Color(0xFFF59E0B); // Amber 500
+  static const Color danger = Color(0xFFEF4444); // Red 500
+
+  // Dark Mode Base
+  static const Color backgroundDark = Color(0xFF020617); // Slate 950
+  static const Color surfaceDark = Color(0xFF0F172A); // Slate 900
+  static const Color textMainDark = Color(0xFFF8FAFC); // Slate 50
+  static const Color textMutedDark = Color(0xFF94A3B8); // Slate 400
+
+  // Light Mode Base
+  static const Color backgroundLight = Color(0xFFF8FAFC); // Slate 50
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color textMainLight = Color(0xFF0F172A); // Slate 900
+  static const Color textMutedLight = Color(0xFF475569); // Slate 600
+}
+
+class ThemeProvider with ChangeNotifier {
+  bool _isDarkMode = true;
+  bool get isDarkMode => _isDarkMode;
+
+  void toggleTheme() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+  }
+}
+
+class PremiumTheme {
+  static ThemeData get lightTheme {
+    return ThemeData(
+      brightness: Brightness.light,
+      primaryColor: PremiumColors.primary,
+      scaffoldBackgroundColor: PremiumColors.backgroundLight,
+      cardColor: PremiumColors.surfaceLight,
+      colorScheme: const ColorScheme.light(
+        primary: PremiumColors.primary,
+        secondary: PremiumColors.secondary,
+        surface: PremiumColors.surfaceLight,
+        error: PremiumColors.danger,
+      ),
+      textTheme: GoogleFonts.interTextTheme().apply(
+        bodyColor: PremiumColors.textMainLight,
+        displayColor: PremiumColors.textMainLight,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: PremiumColors.textMainLight),
+        titleTextStyle: TextStyle(color: PremiumColors.textMainLight, fontSize: 20, fontWeight: FontWeight.w600),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: PremiumColors.surfaceLight,
+        indicatorColor: PremiumColors.primary.withOpacity(0.2),
+        labelTextStyle: MaterialStateProperty.all(const TextStyle(color: PremiumColors.textMainLight)),
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) return const IconThemeData(color: PremiumColors.primary);
+          return const IconThemeData(color: PremiumColors.textMutedLight);
+        }),
+      ),
+      useMaterial3: true,
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      brightness: Brightness.dark,
+      primaryColor: PremiumColors.primary,
+      scaffoldBackgroundColor: PremiumColors.backgroundDark,
+      cardColor: PremiumColors.surfaceDark,
+      colorScheme: const ColorScheme.dark(
+        primary: PremiumColors.primary,
+        secondary: PremiumColors.secondary,
+        surface: PremiumColors.surfaceDark,
+        error: PremiumColors.danger,
+      ),
+      textTheme: GoogleFonts.interTextTheme().apply(
+        bodyColor: PremiumColors.textMainDark,
+        displayColor: PremiumColors.textMainDark,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: PremiumColors.textMainDark),
+        titleTextStyle: TextStyle(color: PremiumColors.textMainDark, fontSize: 20, fontWeight: FontWeight.w600),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: PremiumColors.surfaceDark,
+        indicatorColor: PremiumColors.primary.withOpacity(0.2),
+        labelTextStyle: MaterialStateProperty.all(const TextStyle(color: PremiumColors.textMainDark)),
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) return const IconThemeData(color: PremiumColors.primary);
+          return const IconThemeData(color: PremiumColors.textMutedDark);
+        }),
+      ),
+      useMaterial3: true,
+    );
+  }
 }
 
 class HealthcarePatientApp extends StatelessWidget {
@@ -32,17 +126,17 @@ class HealthcarePatientApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Healthcare Patient Portal',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: AppColors.primary,
-        scaffoldBackgroundColor: AppColors.background,
-        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-        useMaterial3: true,
-      ),
-      home: const AuthWrapper(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: \'Healthcare Patient Portal\',
+          debugShowCheckedModeBanner: false,
+          theme: PremiumTheme.lightTheme,
+          darkTheme: PremiumTheme.darkTheme,
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: const AuthWrapper(),
+        );
+      },
     );
   }
 }
@@ -100,21 +194,28 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Patient Portal',
+          \'Patient Portal\',
           style: GoogleFonts.outfit(
             fontWeight: FontWeight.w600,
-            color: AppColors.textDark,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-            tooltip: 'Sign Out',
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: PremiumColors.primary),
+            tooltip: \'Toggle Theme\',
+            onPressed: () {
+              themeProvider.toggleTheme();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: PremiumColors.danger),
+            tooltip: \'Sign Out\',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (mounted) {
@@ -131,9 +232,6 @@ class _MainScreenState extends State<MainScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        shadowColor: Colors.black12,
         onDestinationSelected: (index) {
           setState(() {
             _currentIndex = index;
@@ -143,17 +241,17 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
-            label: 'Doctors',
+            label: \'Doctors\',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),
-            label: 'Appointments',
+            label: \'Appointments\',
           ),
           NavigationDestination(
             icon: Icon(Icons.monitor_heart_outlined),
             selectedIcon: Icon(Icons.monitor_heart),
-            label: 'Vitals',
+            label: \'Vitals\',
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SpeechRecognitionService } from '../../services/speech-recognition.service';
 import { ConsultationWorkspaceComponent } from './consultation-workspace/consultation-workspace';
@@ -38,6 +39,9 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="nav-item" [class.active]="activeNav === 'settings'" (click)="navigate('settings')">
             <span class="nav-icon">⚙️</span> Settings
           </div>
+          <div class="nav-item text-danger" style="margin-top: auto;" (click)="logout()">
+            <span class="nav-icon">🚪</span> Logout
+          </div>
         </nav>
       </aside>
 
@@ -51,9 +55,9 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           </div>
           <div class="top-bar-right">
             <span class="current-time">{{ currentTime | date:'shortTime' }}</span>
-            <div class="action-icon">🔔<span class="icon-badge">3</span></div>
-            <div class="action-icon">✉️<span class="icon-badge">1</span></div>
-            <div class="action-icon text-danger" title="Emergency Alerts">⚠️</div>
+            <div class="action-icon cursor-pointer" (click)="navigate('notifications')">🔔<span class="icon-badge">3</span></div>
+            <div class="action-icon cursor-pointer" (click)="navigate('messages')">✉️<span class="icon-badge">1</span></div>
+            <div class="action-icon text-danger cursor-pointer" title="Emergency Alerts" (click)="navigate('notifications')">⚠️</div>
             <div class="doctor-profile-sm ml-4 pl-4 border-l border-gray-700">
               <div class="doc-avatar">DS</div>
               <div class="flex-col">
@@ -69,22 +73,22 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           
           <!-- KPI Row -->
           <div class="kpi-grid">
-            <div class="glass-card kpi-card border-t-4 border-primary">
+            <div class="glass-card kpi-card border-t-4 border-primary cursor-pointer" (click)="navigate('schedule')">
               <span class="kpi-title">Today's Appointments</span>
               <span class="kpi-value">24</span>
               <span class="kpi-trend">↑ 2 from yesterday</span>
             </div>
-            <div class="glass-card kpi-card border-t-4 border-accent">
+            <div class="glass-card kpi-card border-t-4 border-accent cursor-pointer" (click)="navigate('queue')">
               <span class="kpi-title">Waiting Patients</span>
               <span class="kpi-value">8</span>
               <span class="kpi-trend text-accent">Average wait: 12 min</span>
             </div>
-            <div class="glass-card kpi-card border-t-4 border-secondary">
+            <div class="glass-card kpi-card border-t-4 border-secondary cursor-pointer" (click)="navigate('schedule')">
               <span class="kpi-title">Completed Consultations</span>
               <span class="kpi-value">12</span>
               <span class="kpi-trend">50% of daily load</span>
             </div>
-            <div class="glass-card kpi-card border-t-4 border-danger">
+            <div class="glass-card kpi-card border-t-4 border-danger cursor-pointer" (click)="navigate('notifications')">
               <span class="kpi-title">Pending Lab Reviews</span>
               <span class="kpi-value">5</span>
               <span class="kpi-trend text-danger">3 critical results</span>
@@ -163,8 +167,8 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
               <div class="flex justify-between items-center mb-6">
                 <h3 class="m-0">Full Day Schedule</h3>
                 <div class="flex gap-2">
-                   <button class="btn btn-outline btn-xs">Previous Day</button>
-                   <button class="btn btn-outline btn-xs">Next Day</button>
+                   <button class="btn btn-outline btn-xs" (click)="changeDay(-1)">Previous Day</button>
+                   <button class="btn btn-outline btn-xs" (click)="changeDay(1)">Next Day</button>
                 </div>
               </div>
               <div class="flex-col gap-3">
@@ -238,7 +242,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
             <h3 class="m-0 mb-6">Medical Records Search</h3>
             <div class="flex gap-4 mb-6">
               <input type="text" class="form-control" placeholder="Search patient by name, ID, or phone...">
-              <button class="btn btn-primary">Search</button>
+              <button class="btn btn-primary" (click)="searchRecords()">Search</button>
             </div>
             <div class="inner-card p-8 text-center text-muted">
               <span class="text-4xl mb-4 block">🗂️</span>
@@ -252,7 +256,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="glass-card">
             <div class="flex justify-between items-center mb-6">
               <h3 class="m-0">Telemedicine Sessions</h3>
-              <button class="btn btn-secondary">Join Active Room</button>
+              <button class="btn btn-secondary" (click)="joinRoom()">Join Active Room</button>
             </div>
             <div class="grid grid-cols-2 gap-6">
                <div class="inner-card">
@@ -276,6 +280,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
             <h3 class="m-0 mb-6">Profile & Settings</h3>
             <div class="grid grid-cols-2 gap-8">
               <div class="flex-col gap-4">
+                <h4 class="m-0 text-primary mb-2">Personal Information</h4>
                 <div class="form-group">
                   <label class="form-label">Full Name</label>
                   <input type="text" class="form-control" value="Dr. John Smith" disabled>
@@ -292,7 +297,82 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
                     <option>None</option>
                   </select>
                 </div>
-                <button class="btn btn-primary">Save Settings</button>
+                <button class="btn btn-primary mt-2" (click)="saveSettings()">Save Settings</button>
+              </div>
+
+              <!-- Password Change Section -->
+              <div class="flex-col gap-4">
+                <h4 class="m-0 text-primary mb-2">Security</h4>
+                <div class="form-group">
+                  <label class="form-label">Current Password</label>
+                  <input type="password" class="form-control" placeholder="Enter current password">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Password</label>
+                  <input type="password" class="form-control" placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Confirm New Password</label>
+                  <input type="password" class="form-control" placeholder="Confirm new password">
+                </div>
+                <button class="btn btn-secondary mt-2" (click)="changePassword()">Update Password</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTIFICATIONS VIEW -->
+        <div class="dashboard-content" *ngIf="!inConsultation && activeNav === 'notifications'">
+          <div class="glass-card">
+            <h3 class="m-0 mb-6">Notifications</h3>
+            <div class="flex-col gap-4">
+              <div class="inner-card border-l-4 border-danger" style="border-left-width: 4px; border-left-color: var(--danger);">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="m-0 text-danger flex items-center gap-2">⚠️ Emergency Alert</h4>
+                  <span class="text-xs text-muted">10 mins ago</span>
+                </div>
+                <p class="text-sm text-main m-0">Critical Alert: Code Blue in Ward A. Immediate assistance required.</p>
+              </div>
+              <div class="inner-card border-l-4 border-accent" style="border-left-width: 4px; border-left-color: var(--accent);">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="m-0 text-accent flex items-center gap-2">🔬 Lab Results</h4>
+                  <span class="text-xs text-muted">1 hour ago</span>
+                </div>
+                <p class="text-sm text-main m-0">Abnormal Lab - John Smith: HbA1c levels elevated (8.2%).</p>
+              </div>
+              <div class="inner-card border-l-4 border-primary" style="border-left-width: 4px; border-left-color: var(--primary);">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="m-0 text-primary flex items-center gap-2">📅 System</h4>
+                  <span class="text-xs text-muted">2 hours ago</span>
+                </div>
+                <p class="text-sm text-main m-0">Schedule updated: 2 new appointments added for tomorrow.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MESSAGES VIEW -->
+        <div class="dashboard-content" *ngIf="!inConsultation && activeNav === 'messages'">
+          <div class="glass-card">
+            <h3 class="m-0 mb-6">Messages</h3>
+            <div class="flex-col gap-4">
+              <div class="inner-card">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="m-0 font-bold">Dr. Emily Chen (Neurology)</h4>
+                  <span class="text-xs text-muted">Today, 08:30 AM</span>
+                </div>
+                <p class="text-sm text-main m-0 mb-3">Hi Dr. Smith, I reviewed the MRI for patient Sarah Lee. Can we discuss the findings during the lunch break?</p>
+                <div class="flex gap-2">
+                   <button class="btn btn-primary btn-xs">Reply</button>
+                   <button class="btn btn-outline btn-xs">Mark as Read</button>
+                </div>
+              </div>
+              <div class="inner-card opacity-70">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="m-0 font-bold text-muted">Admin Team</h4>
+                  <span class="text-xs text-muted">Yesterday</span>
+                </div>
+                <p class="text-sm text-muted m-0 mb-3">Reminder: The monthly staff meeting has been rescheduled to Friday at 3:00 PM in Conference Room B.</p>
               </div>
             </div>
           </div>
@@ -338,7 +418,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     { token: '103', name: 'Maria Garcia', waitMins: 7, priority: 'Normal' }
   ];
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit() {
     this.timer = setInterval(() => {
@@ -371,7 +451,9 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       'queue': 'Patient Queue',
       'records': 'Medical Records',
       'telemedicine': 'Telemedicine',
-      'settings': 'Settings'
+      'settings': 'Settings',
+      'notifications': 'Notifications',
+      'messages': 'Messages'
     };
     return titles[this.activeNav] || 'Dashboard';
   }
@@ -430,5 +512,36 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     }
     
     this.endConsultation();
+  }
+
+  showAlert(msg: string) {
+    alert(msg);
+  }
+
+  changeDay(offset: number) {
+    alert('Day changed by ' + offset + ' days. Schedule loaded.');
+  }
+
+  searchRecords() {
+    alert('Searching records... No matches found.');
+  }
+
+  joinRoom() {
+    alert('Joining telemedicine room... Waiting for patient.');
+  }
+
+  saveSettings() {
+    alert('Settings saved successfully!');
+  }
+
+  changePassword() {
+    alert('Password updated successfully!');
+  }
+
+  logout() {
+    if(confirm('Are you sure you want to log out?')) {
+      localStorage.removeItem('token');
+      this.router.navigate(['/login']);
+    }
   }
 }

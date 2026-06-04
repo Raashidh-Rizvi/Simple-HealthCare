@@ -12,10 +12,12 @@
 }
 
 .content-card {
-  background: white;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
 }
 
 .badge {
@@ -25,26 +27,34 @@
   font-weight: 500;
 }
 
-.badge-pending { background-color: #fef3c7; color: #92400e; }
-.badge-confirmed { background-color: #d1fae5; color: #065f46; }
-.badge-checkin { background-color: #e0e7ff; color: #3730a3; }
-.badge-vitals { background-color: #f3e8ff; color: #6b21a8; }
-.badge-consult { background-color: #fee2e2; color: #991b1b; }
-.badge-completed { background-color: #d1fae5; color: #065f46; }
+/* Fallback badges if not using the global ones */
+.badge-pending { background-color: rgba(245, 158, 11, 0.2); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-confirmed { background-color: rgba(16, 185, 129, 0.2); color: var(--secondary); border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-checkin { background-color: rgba(99, 102, 241, 0.2); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+.badge-vitals { background-color: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+.badge-consult { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-completed { background-color: rgba(16, 185, 129, 0.2); color: var(--secondary); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+:root.light-theme .badge-pending { color: #b45309; }
+:root.light-theme .badge-confirmed { color: #047857; }
+:root.light-theme .badge-checkin { color: #4338ca; }
+:root.light-theme .badge-vitals { color: #6d28d9; }
+:root.light-theme .badge-consult { color: #b91c1c; }
+:root.light-theme .badge-completed { color: #047857; }
 
 .table th {
   font-weight: 600;
-  color: #4b5563;
+  color: var(--text-muted);
 }
 
 .no-data {
   text-align: center;
   padding: 40px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .loading {
   text-align: center;
   padding: 20px;
-  color: #3b82f6;
+  color: var(--primary);
 }

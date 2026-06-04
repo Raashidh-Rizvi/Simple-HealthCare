@@ -12,7 +12,7 @@
   --accent: #f59e0b; /* Amber 500 */
   --danger: #ef4444; /* Red 500 */
   
-  /* Dark Mode Base */
+  /* Dark Mode Base (Default) */
   --background-base: #020617; /* Slate 950 */
   --surface: rgba(15, 23, 42, 0.65); /* Slate 900 transparent */
   --surface-elevated: rgba(30, 41, 59, 0.75); /* Slate 800 transparent */
@@ -24,6 +24,24 @@
   --text-muted: #94a3b8; /* Slate 400 */
   --text-inverse: #020617;
   
+  /* Glassmorphism Variables */
+  --glass-border-gradient: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+  --glass-inner-bg: rgba(255, 255, 255, 0.03);
+  --glass-inner-border: rgba(255, 255, 255, 0.05);
+  --glass-inner-hover-bg: rgba(255, 255, 255, 0.05);
+  --glass-inner-hover-border: rgba(255, 255, 255, 0.1);
+  --btn-outline-bg: rgba(255, 255, 255, 0.03);
+  --btn-outline-hover-bg: rgba(255, 255, 255, 0.1);
+  --form-bg: rgba(2, 6, 23, 0.5);
+  --form-hover-bg: rgba(2, 6, 23, 0.7);
+  --form-focus-bg: rgba(2, 6, 23, 0.8);
+  --select-bg: rgba(10, 15, 40, 0.85);
+  --select-hover-bg: rgba(15, 20, 50, 0.9);
+  --select-focus-bg: rgba(15, 20, 55, 0.95);
+  --option-bg: #0f172a;
+  --option-text: #e2e8f0;
+  --modal-overlay-bg: rgba(2, 6, 23, 0.8);
+
   /* Glassmorphism Configuration */
   --glass-blur: blur(16px);
   --glass-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
@@ -36,6 +54,40 @@
   --transition-fast: all 0.2s ease;
   --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:root.light-theme {
+  /* Light Mode Base */
+  --background-base: #f8fafc; /* Slate 50 */
+  --surface: rgba(255, 255, 255, 0.75); 
+  --surface-elevated: rgba(255, 255, 255, 0.95);
+  --surface-border: rgba(0, 0, 0, 0.08);
+  --surface-border-hover: rgba(0, 0, 0, 0.15);
+
+  /* Typography Colors */
+  --text-main: #0f172a; /* Slate 900 */
+  --text-muted: #475569; /* Slate 600 */
+  --text-inverse: #f8fafc;
+  
+  /* Glassmorphism Variables */
+  --glass-border-gradient: linear-gradient(135deg, rgba(0,0,0,0.08), rgba(0,0,0,0));
+  --glass-inner-bg: rgba(0, 0, 0, 0.02);
+  --glass-inner-border: rgba(0, 0, 0, 0.05);
+  --glass-inner-hover-bg: rgba(0, 0, 0, 0.04);
+  --glass-inner-hover-border: rgba(0, 0, 0, 0.08);
+  --btn-outline-bg: rgba(0, 0, 0, 0.03);
+  --btn-outline-hover-bg: rgba(0, 0, 0, 0.08);
+  --form-bg: rgba(255, 255, 255, 0.6);
+  --form-hover-bg: rgba(255, 255, 255, 0.8);
+  --form-focus-bg: rgba(255, 255, 255, 1);
+  --select-bg: rgba(255, 255, 255, 0.85);
+  --select-hover-bg: rgba(255, 255, 255, 0.95);
+  --select-focus-bg: #ffffff;
+  --option-bg: #ffffff;
+  --option-text: #0f172a;
+  --modal-overlay-bg: rgba(255, 255, 255, 0.6);
+  
+  --glass-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
 }
 
 * {
@@ -59,6 +111,7 @@ body {
     radial-gradient(circle at 50% 100%, rgba(245, 158, 11, 0.08), transparent 30%);
   background-attachment: fixed;
   background-size: cover;
+  transition: background-color var(--transition-smooth), color var(--transition-smooth);
 }
 
 /* Typography Enhancements */
@@ -104,7 +157,7 @@ a:hover {
   top: 0; left: 0; right: 0; bottom: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+  background: var(--glass-border-gradient);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -117,18 +170,22 @@ a:hover {
   border-color: var(--surface-border-hover);
 }
 
+:root.light-theme .glass-card:hover {
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15), 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
 /* Inner Card for grouped content */
 .inner-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--glass-inner-bg);
+  border: 1px solid var(--glass-inner-border);
   border-radius: var(--radius-md);
   padding: 16px;
   transition: var(--transition-fast);
 }
 
 .inner-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--glass-inner-hover-bg);
+  border-color: var(--glass-inner-hover-border);
 }
 
 /* Premium Buttons */
@@ -159,7 +216,7 @@ a:hover {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: white;
   box-shadow: 0 4px 15px var(--primary-glow);
-  border-color: rgba(255,255,255,0.1);
+  border-color: var(--surface-border-hover);
 }
 
 .btn-primary:hover {
@@ -172,7 +229,7 @@ a:hover {
   background: linear-gradient(135deg, var(--secondary), var(--secondary-hover));
   color: white;
   box-shadow: 0 4px 15px var(--secondary-glow);
-  border-color: rgba(255,255,255,0.1);
+  border-color: var(--surface-border-hover);
 }
 
 .btn-secondary:hover {
@@ -204,15 +261,15 @@ a:hover {
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--btn-outline-bg);
   border: 1px solid var(--surface-border-hover);
   color: var(--text-main);
   backdrop-filter: blur(8px);
 }
 
 .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--btn-outline-hover-bg);
+  border-color: var(--surface-border);
   transform: translateY(-2px);
 }
 
@@ -235,13 +292,14 @@ a:hover {
   padding: 12px 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--surface-border);
-  background: rgba(2, 6, 23, 0.5); /* Slate 950 very transparent */
+  background: var(--form-bg);
   color: var(--text-main);
   font-size: 15px;
   transition: var(--transition-smooth);
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
   color-scheme: dark;
 }
+:root.light-theme .form-control { color-scheme: light; }
 
 .form-control::-webkit-calendar-picker-indicator {
   cursor: pointer;
@@ -259,15 +317,15 @@ a:hover {
 }
 
 .form-control:hover {
-  border-color: rgba(255,255,255,0.15);
-  background: rgba(2, 6, 23, 0.7);
+  border-color: var(--surface-border-hover);
+  background: var(--form-hover-bg);
 }
 
 .form-control:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), inset 0 2px 4px rgba(0,0,0,0.1);
-  background: rgba(2, 6, 23, 0.8);
+  box-shadow: 0 0 0 3px var(--primary-glow), inset 0 2px 4px rgba(0,0,0,0.1);
+  background: var(--form-focus-bg);
 }
 
 /* ─── Select / Dropdown Styling ─────────────────────────────────────────── */
@@ -281,7 +339,7 @@ select.form-control {
   background-position: right 14px center;
   padding-right: 42px;
   cursor: pointer;
-  background-color: rgba(10, 15, 40, 0.85);
+  background-color: var(--select-bg);
   border: 1px solid rgba(99, 102, 241, 0.35);
   color: var(--text-main);
   font-weight: 500;
@@ -289,20 +347,20 @@ select.form-control {
 
 select.form-control:hover {
   border-color: rgba(99, 102, 241, 0.6);
-  background-color: rgba(15, 20, 50, 0.9);
+  background-color: var(--select-hover-bg);
   box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
 }
 
 select.form-control:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3), 0 0 12px rgba(99, 102, 241, 0.15);
-  background-color: rgba(15, 20, 55, 0.95);
+  background-color: var(--select-focus-bg);
 }
 
 /* Style the dropdown options list */
 select.form-control option {
-  background-color: #0f172a; /* Slate 900 */
-  color: #e2e8f0;            /* Slate 200 */
+  background-color: var(--option-bg);
+  color: var(--option-text);
   font-size: 14px;
   font-weight: 500;
   padding: 10px 14px;
@@ -337,6 +395,12 @@ select.form-control option:disabled {
 .badge-danger  { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 .badge-muted   { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
 .text-main { color: var(--text-main); }
+
+:root.light-theme .badge-primary { color: #4338ca; border-color: rgba(99, 102, 241, 0.4); }
+:root.light-theme .badge-success { color: #047857; border-color: rgba(16, 185, 129, 0.4); }
+:root.light-theme .badge-warning { color: #b45309; border-color: rgba(245, 158, 11, 0.4); }
+:root.light-theme .badge-danger { color: #b91c1c; border-color: rgba(239, 68, 68, 0.4); }
+:root.light-theme .badge-muted { color: #334155; border-color: rgba(148, 163, 184, 0.4); }
 
 /* Success button */
 .btn-success {
@@ -381,14 +445,14 @@ select.form-control option:disabled {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--surface);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-border-hover);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--surface-border);
 }
 
 /* Layout Utilities */
@@ -442,7 +506,7 @@ select.form-control option:disabled {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(2, 6, 23, 0.8);
+  background: var(--modal-overlay-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
@@ -462,17 +526,21 @@ select.form-control option:disabled {
   max-width: 650px;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px var(--primary-glow);
   animation: modalSlideUp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
   padding: 32px;
   position: relative;
+}
+
+:root.light-theme .modal-content {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 40px rgba(99, 102, 241, 0.2);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--surface-border);
   padding-bottom: 20px;
   margin-bottom: 24px;
 }
@@ -509,7 +577,7 @@ select.form-control option:disabled {
   letter-spacing: 0.05em;
   color: var(--primary);
   margin-bottom: 12px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+  border-bottom: 1px dashed var(--surface-border);
   padding-bottom: 6px;
 }
 
@@ -558,5 +626,3 @@ select.form-control option:disabled {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-
-
