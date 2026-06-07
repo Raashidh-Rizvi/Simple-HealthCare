@@ -79,7 +79,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                             Text('Status: ${apt.status.toUpperCase()}',
                                 style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w500,
-                                    color: apt.status == 'complete'
+                                    color: (apt.status.toLowerCase() == 'completed' ||
+                                            apt.status.toLowerCase() == 'confirmed' ||
+                                            apt.status.toLowerCase() == 'scheduled' ||
+                                            apt.status.toLowerCase() == 'complete')
                                         ? Colors.green
                                         : Colors.orange)),
                           ],
@@ -158,9 +161,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: (apt.status == 'complete' ||
-                                  apt.status == 'SCHEDULED' ||
-                                  apt.status == 'Scheduled')
+                          color: (apt.status.toLowerCase() == 'completed' ||
+                                  apt.status.toLowerCase() == 'confirmed' ||
+                                  apt.status.toLowerCase() == 'scheduled' ||
+                                  apt.status.toLowerCase() == 'complete')
                               ? Colors.green.withValues(alpha: 0.1)
                               : Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -170,9 +174,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: (apt.status == 'complete' ||
-                                    apt.status == 'SCHEDULED' ||
-                                    apt.status == 'Scheduled')
+                            color: (apt.status.toLowerCase() == 'completed' ||
+                                    apt.status.toLowerCase() == 'confirmed' ||
+                                    apt.status.toLowerCase() == 'scheduled' ||
+                                    apt.status.toLowerCase() == 'complete')
                                 ? Colors.green
                                 : Colors.orange,
                           ),

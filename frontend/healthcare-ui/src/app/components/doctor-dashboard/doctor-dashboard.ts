@@ -59,10 +59,10 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
             <div class="action-icon cursor-pointer" (click)="navigate('messages')">✉️<span class="icon-badge">1</span></div>
             <div class="action-icon text-danger cursor-pointer" title="Emergency Alerts" (click)="navigate('notifications')">⚠️</div>
             <div class="doctor-profile-sm ml-4 pl-4 border-l border-gray-700">
-              <div class="doc-avatar">DS</div>
+              <div class="doc-avatar">{{ doctorInitials }}</div>
               <div class="flex-col">
-                <span class="text-sm font-bold">Dr. Smith</span>
-                <span class="text-xs text-muted">Cardiology</span>
+                <span class="text-sm font-bold">{{ doctorName }}</span>
+                <span class="text-xs text-muted">{{ doctorSpecialization }}</span>
               </div>
             </div>
           </div>
@@ -75,18 +75,18 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="kpi-grid">
             <div class="glass-card kpi-card border-t-4 border-primary cursor-pointer" (click)="navigate('schedule')">
               <span class="kpi-title">Today's Appointments</span>
-              <span class="kpi-value">24</span>
-              <span class="kpi-trend">↑ 2 from yesterday</span>
+              <span class="kpi-value">{{ todayAppointmentsCount }}</span>
+              <span class="kpi-trend">Dynamic schedule count</span>
             </div>
             <div class="glass-card kpi-card border-t-4 border-accent cursor-pointer" (click)="navigate('queue')">
               <span class="kpi-title">Waiting Patients</span>
-              <span class="kpi-value">8</span>
-              <span class="kpi-trend text-accent">Average wait: 12 min</span>
+              <span class="kpi-value">{{ mockQueue.length }}</span>
+              <span class="kpi-trend text-accent">Checked-in queue</span>
             </div>
             <div class="glass-card kpi-card border-t-4 border-secondary cursor-pointer" (click)="navigate('schedule')">
               <span class="kpi-title">Completed Consultations</span>
-              <span class="kpi-value">12</span>
-              <span class="kpi-trend">50% of daily load</span>
+              <span class="kpi-value">{{ completedTodayCount }}</span>
+              <span class="kpi-trend">Completed today</span>
             </div>
             <div class="glass-card kpi-card border-t-4 border-danger cursor-pointer" (click)="navigate('notifications')">
               <span class="kpi-title">Pending Lab Reviews</span>
@@ -165,7 +165,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
         <div class="dashboard-content" *ngIf="!inConsultation && activeNav === 'schedule'">
            <div class="glass-card">
               <div class="flex justify-between items-center mb-6">
-                <h3 class="m-0">Full Day Schedule</h3>
+                <h3 class="m-0">Schedule for {{ selectedDate | date:'fullDate' }}</h3>
                 <div class="flex gap-2">
                    <button class="btn btn-outline btn-xs" (click)="changeDay(-1)">Previous Day</button>
                    <button class="btn btn-outline btn-xs" (click)="changeDay(1)">Next Day</button>
@@ -398,29 +398,43 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   currentTime = new Date();
   private timer: any;
 
+  // Doctor Details
+  doctorName = '';
+  doctorInitials = '';
+  doctorSpecialization = 'General Medicine';
+
   // View State
   inConsultation = false;
   activePatient: any = null;
   activePatientVitals: any = null;
   activePatientHistory: any[] = [];
+  activeEncounterId: number | null = null;
 
-  // Mock Data
-  mockSchedule = [
-    { id: 1, time: '09:00', name: 'John Smith', reason: 'Follow-up (Diabetes)', status: 'Completed' },
-    { id: 2, time: '09:30', name: 'Sarah Lee', reason: 'Hypertension Evaluation', status: 'Waiting' },
-    { id: 3, time: '10:00', name: 'Ahmed Khan', reason: 'General Checkup', status: 'Confirmed' },
-    { id: 4, time: '10:30', name: 'David Silva', reason: 'Chest Pain', status: 'Emergency' }
-  ];
+  // Selected date for viewing schedule
+  selectedDate: Date = new Date();
 
-  mockQueue = [
-    { token: '101', name: 'David Silva', waitMins: 5, priority: 'Emergency' },
-    { token: '102', name: 'Sarah Lee', waitMins: 12, priority: 'Urgent' },
-    { token: '103', name: 'Maria Garcia', waitMins: 7, priority: 'Normal' }
-  ];
+  // Dynamic Data
+  appointments: any[] = [];
+  todayAppointmentsCount = 0;
+  completedTodayCount = 0;
+
+  mockSchedule: any[] = [];
+  mockQueue: any[] = [];
 
   constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit() {
+    this.doctorName = localStorage.getItem('name') || 'Doctor';
+    const names = this.doctorName.replace(/^(Dr\.\s*|Dr\s+)/i, '').split(' ');
+    this.doctorInitials = names.map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'CP';
+    
+    // Prefix name with Dr. if not already present
+    if (!this.doctorName.toLowerCase().startsWith('dr.')) {
+      this.doctorName = 'Dr. ' + this.doctorName;
+    }
+
+    this.loadAppointments();
+
     this.timer = setInterval(() => {
       this.currentTime = new Date();
     }, 1000);
@@ -430,6 +444,93 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     if (this.timer) {
       clearInterval(this.timer);
     }
+  }
+
+  loadAppointments() {
+    this.api.getMyAppointments().subscribe({
+      next: (data) => {
+        this.appointments = data;
+        
+        // Dynamically find doctor's specialization if available
+        if (data && data.length > 0) {
+          const firstWithSpec = data.find((a: any) => a.specialization);
+          if (firstWithSpec) {
+            this.doctorSpecialization = firstWithSpec.specialization;
+          }
+        }
+        
+        this.processAppointments();
+      },
+      error: (err) => {
+        console.error('Failed to load appointments', err);
+      }
+    });
+  }
+
+  isSameDay(d1: Date, d2: Date): boolean {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  }
+
+  processAppointments() {
+    const today = new Date();
+    
+    // 1. Today's counts
+    const todayApts = this.appointments.filter(a => this.isSameDay(new Date(a.appointmentDate), today));
+    this.todayAppointmentsCount = todayApts.length;
+    this.completedTodayCount = todayApts.filter(a => a.status === 'Completed').length;
+
+    // 2. Build schedule for selectedDate
+    this.mockSchedule = this.appointments
+      .filter(a => this.isSameDay(new Date(a.appointmentDate), this.selectedDate))
+      .map(a => {
+        let displayStatus = a.status;
+        if (displayStatus === 'Confirmed' || displayStatus === 'Pending') {
+          if (a.encounterStatus === 'CheckedIn' || a.encounterStatus === 'VitalsRecorded') {
+            displayStatus = 'Waiting';
+          } else if (a.encounterStatus === 'InConsultation') {
+            displayStatus = 'Emergency';
+          }
+        }
+        return {
+          id: a.id,
+          time: a.startTime,
+          name: a.patientName,
+          reason: a.reason || 'No reason specified',
+          status: displayStatus,
+          patientId: a.patientId,
+          encounterId: a.encounterId,
+          encounterStatus: a.encounterStatus,
+          vitals: a.vitals,
+          notes: a.notes,
+          appointmentDate: a.appointmentDate
+        };
+      })
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    // 3. Build queue for today (Checked-in or VitalsRecorded, not Completed)
+    this.mockQueue = this.appointments
+      .filter(a => this.isSameDay(new Date(a.appointmentDate), today) && 
+                   a.encounterId && 
+                   a.encounterStatus !== 'Completed')
+      .map(a => {
+        let priority = 'Normal';
+        const reasonLower = (a.reason || '').toLowerCase();
+        if (reasonLower.includes('chest pain') || reasonLower.includes('emergency') || reasonLower.includes('severe')) {
+          priority = 'Emergency';
+        } else if (reasonLower.includes('fever') || reasonLower.includes('pain') || reasonLower.includes('breath')) {
+          priority = 'Urgent';
+        }
+        return {
+          token: `P-${a.id}`,
+          name: a.patientName,
+          waitMins: 12, // Average display
+          priority: priority,
+          encounterId: a.encounterId,
+          appointment: a
+        };
+      });
   }
 
   navigate(nav: string) {
@@ -469,49 +570,98 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   startConsultation(apt: any) {
-    // Setup mock data for the workspace based on the appointment
-    this.activePatient = {
-      id: 'PT' + apt.id + '992',
-      name: apt.name,
-      age: 45,
-      gender: 'Male',
-      allergies: ['Penicillin', 'Peanuts'],
-      conditions: ['Type 2 Diabetes', 'Hypertension']
-    };
-    
-    this.activePatientVitals = {
-      bp: apt.name === 'Sarah Lee' ? '160/100' : '120/80',
-      pulse: '75',
-      temp: '98.4',
-      weight: '78kg'
-    };
+    if (!apt.encounterId) {
+      alert('Patient has not checked in at reception yet.');
+      return;
+    }
 
-    this.activePatientHistory = [
-      { date: '12 May 2026', type: 'General', diagnosis: 'Routine checkup. BP normal.' },
-      { date: '04 Mar 2026', type: 'Lab Review', diagnosis: 'HbA1c slightly elevated.' }
-    ];
+    this.api.startConsultation(apt.encounterId).subscribe({
+      next: () => {
+        this.activePatient = {
+          id: 'PT' + apt.patientId + '992',
+          name: apt.name,
+          age: 45, // default
+          gender: 'Male', // default
+          allergies: ['Penicillin'],
+          conditions: []
+        };
+        
+        if (apt.vitals && apt.vitals.length > 0) {
+          const v = apt.vitals[apt.vitals.length - 1];
+          this.activePatientVitals = {
+            bp: (v.bloodPressureSystolic && v.bloodPressureDiastolic) ? `${v.bloodPressureSystolic}/${v.bloodPressureDiastolic}` : '120/80',
+            pulse: v.heartRate || '75',
+            temp: v.temperature || '98.6',
+            weight: v.weight ? `${v.weight} lbs` : '150 lbs'
+          };
+        } else {
+          this.activePatientVitals = { bp: '120/80', pulse: '75', temp: '98.6', weight: '150 lbs' };
+        }
 
-    this.inConsultation = true;
+        this.activePatientHistory = this.appointments
+          .filter(a => a.patientId === apt.patientId && a.status === 'Completed')
+          .map(a => ({
+            date: new Date(a.appointmentDate).toLocaleDateString(),
+            type: 'General',
+            diagnosis: a.notes || 'Routine checkup. Consultation completed.'
+          }));
+
+        this.activeEncounterId = apt.encounterId;
+        this.inConsultation = true;
+      },
+      error: (err) => {
+        alert('Failed to start consultation: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   endConsultation() {
     this.inConsultation = false;
     this.activePatient = null;
+    this.activeEncounterId = null;
+    this.loadAppointments();
   }
 
-  completeConsultation(notes: any) {
-    console.log('Consultation completed with notes:', notes);
-    // In a real app, send this to the API
-    alert('Consultation saved successfully!');
-    
-    // Update local mock state
-    if (this.activePatient) {
-       const apt = this.mockSchedule.find(a => a.name === this.activePatient.name);
-       if (apt) apt.status = 'Completed';
-       this.mockQueue = this.mockQueue.filter(q => q.name !== this.activePatient.name);
+  completeConsultation(event: any) {
+    const encounterId = this.activeEncounterId;
+    if (!encounterId) return;
+
+    const notesSummary = `Chief Complaint: ${event.notes.chiefComplaint}\nHPI: ${event.notes.hpi}\nPlan: ${event.notes.plan}`;
+    const diagnosis = event.notes.assessment;
+
+    const orders = [];
+    if (event.prescriptions && event.prescriptions.length > 0) {
+      for (const rx of event.prescriptions) {
+        orders.push({
+          orderType: 'Pharmacy',
+          description: `${rx.name} ${rx.dosage} - ${rx.frequency} for ${rx.duration}`
+        });
+      }
     }
-    
-    this.endConsultation();
+    if (event.orderedLabs && event.orderedLabs.length > 0) {
+      for (const lab of event.orderedLabs) {
+        orders.push({
+          orderType: 'Lab',
+          description: lab
+        });
+      }
+    }
+
+    const payload = {
+      notes: notesSummary,
+      diagnosis: diagnosis,
+      orders: orders
+    };
+
+    this.api.completeConsultation(encounterId, payload).subscribe({
+      next: () => {
+        alert('Consultation completed successfully!');
+        this.endConsultation();
+      },
+      error: (err) => {
+        alert('Failed to complete consultation: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   showAlert(msg: string) {
@@ -519,7 +669,10 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   changeDay(offset: number) {
-    alert('Day changed by ' + offset + ' days. Schedule loaded.');
+    const newDate = new Date(this.selectedDate);
+    newDate.setDate(newDate.getDate() + offset);
+    this.selectedDate = newDate;
+    this.processAppointments();
   }
 
   searchRecords() {

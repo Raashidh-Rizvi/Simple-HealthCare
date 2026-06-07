@@ -7,43 +7,53 @@ import { filter } from 'rxjs/operators';
   standalone: true,
   imports: [RouterModule],
   template: `
-    <nav class="glass-card" style="border-radius: 0; padding: 16px 24px; position: sticky; top: 0; z-index: 50; border-left: none; border-right: none; border-top: none;">
-      <div class="container flex justify-between items-center">
-        <div class="flex items-center gap-4">
-          <h3 class="font-bold text-main" style="letter-spacing: -0.05em; font-size: 22px;">
-            <span style="color: var(--primary);">🏥</span> QuicHealth
-          </h3>
+    @if (showNavbar) {
+      <nav class="glass-card" style="border-radius: 0; padding: 16px 24px; position: sticky; top: 0; z-index: 50; border-left: none; border-right: none; border-top: none;">
+        <div class="container flex justify-between items-center">
+          <div class="flex items-center gap-4">
+            <h3 class="font-bold text-main" style="letter-spacing: -0.05em; font-size: 22px;">
+              <span style="color: var(--primary);">🏥</span> QuicHealth
+            </h3>
+          </div>
+          <div class="flex gap-4 items-center">
+            <button (click)="toggleTheme()" class="btn btn-outline text-sm" style="padding: 8px 12px; border-radius: 50%; border-color: var(--surface-border);" title="Toggle Theme">
+              {{ isDarkMode ? '🌙' : '☀️' }}
+            </button>
+            @if (isLoggedIn) {
+              <a (click)="signOut()" class="btn btn-outline text-sm" style="cursor: pointer;">Sign Out</a>
+            } @else {
+              <a routerLink="/login" class="btn btn-primary text-sm">Log In</a>
+            }
+          </div>
         </div>
-        <div class="flex gap-4 items-center">
-          <button (click)="toggleTheme()" class="btn btn-outline text-sm" style="padding: 8px 12px; border-radius: 50%; border-color: var(--surface-border);" title="Toggle Theme">
-            {{ isDarkMode ? '🌙' : '☀️' }}
-          </button>
-          @if (isLoggedIn) {
-            <a (click)="signOut()" class="btn btn-outline text-sm" style="cursor: pointer;">Sign Out</a>
-          } @else {
-            <a routerLink="/login" class="btn btn-primary text-sm">Log In</a>
-          }
-        </div>
-      </div>
-    </nav>
+      </nav>
+    }
   `,
   styleUrl: './navbar.css',
 })
 export class NavbarComponent implements OnInit {
   isLoggedIn = false;
   isDarkMode = true;
+  showNavbar = true;
 
   constructor(private router: Router) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
       this.checkLoginStatus();
+      this.updateNavbarVisibility();
     });
   }
 
   ngOnInit() {
     this.checkLoginStatus();
     this.initTheme();
+    this.updateNavbarVisibility();
+  }
+
+  updateNavbarVisibility() {
+    const path = this.router.url.split('?')[0];
+    this.showNavbar = !(path === '/patient' || path.startsWith('/patient/'));
   }
 
   initTheme() {

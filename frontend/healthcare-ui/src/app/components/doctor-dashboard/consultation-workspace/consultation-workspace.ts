@@ -92,7 +92,7 @@ import { SpeechRecognitionService } from '../../../services/speech-recognition.s
           </div>
           <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-700">
             <button class="btn btn-outline" (click)="onCancel.emit()">Cancel</button>
-            <button class="btn btn-secondary" (click)="onComplete.emit(notes)">Complete Consultation</button>
+            <button class="btn btn-secondary" (click)="onComplete.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs })">Complete Consultation</button>
           </div>
         </div>
       </div>

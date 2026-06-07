@@ -3,6 +3,7 @@ using Healthcare.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Healthcare.API.Controllers
 {
@@ -96,6 +97,90 @@ namespace Healthcare.API.Controllers
                 .ToListAsync();
 
             return Ok(availability);
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var val = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(val, out var id) ? id : null;
+        }
+
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetMyProfile()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var doctor = await _context.Doctors
+                .Include(d => d.User)
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null) return NotFound(new { message = "Doctor profile not found" });
+
+            return Ok(new
+            {
+                doctor.Id,
+                doctor.UserId,
+                Email = doctor.User?.Email,
+                FirstName = doctor.User?.FirstName,
+                LastName = doctor.User?.LastName,
+                Phone = doctor.User?.Phone,
+                doctor.Specialization,
+                doctor.LicenseNumber,
+                doctor.ExperienceYears,
+                doctor.ConsultationFee
+            });
+        }
+
+        [HttpPut("me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateDoctorProfileDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var doctor = await _context.Doctors
+                .Include(d => d.User)
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null) return NotFound(new { message = "Doctor profile not found" });
+
+            // Update User details
+            if (doctor.User != null)
+            {
+                if (!string.IsNullOrWhiteSpace(dto.FirstName))
+                    doctor.User.FirstName = dto.FirstName;
+                if (!string.IsNullOrWhiteSpace(dto.LastName))
+                    doctor.User.LastName = dto.LastName;
+                if (dto.Phone != null)
+                    doctor.User.Phone = dto.Phone;
+            }
+
+            // Update Doctor details
+            if (!string.IsNullOrWhiteSpace(dto.Specialization))
+                doctor.Specialization = dto.Specialization;
+            if (dto.LicenseNumber != null)
+                doctor.LicenseNumber = dto.LicenseNumber;
+            if (dto.ExperienceYears != null)
+                doctor.ExperienceYears = dto.ExperienceYears.Value;
+            if (dto.ConsultationFee != null)
+                doctor.ConsultationFee = dto.ConsultationFee.Value;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Profile updated successfully" });
+        }
+
+        public class UpdateDoctorProfileDto
+        {
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public string? Phone { get; set; }
+            public string? Specialization { get; set; }
+            public string? LicenseNumber { get; set; }
+            public int? ExperienceYears { get; set; }
+            public decimal? ConsultationFee { get; set; }
         }
     }
 }

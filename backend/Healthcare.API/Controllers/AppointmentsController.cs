@@ -130,19 +130,19 @@ namespace Healthcare.API.Controllers
                 .Select(a => a.StartTime)
                 .ToListAsync();
 
-            // 5. Filter: remove booked and past slots
+            // 5. Remove past slots if today; return ALL with isBooked flag so frontend can show them
             var now = DateTime.UtcNow.TimeOfDay;
             var isToday = dateOnly == DateTime.UtcNow.Date;
 
             var available = allSlots
-                .Where(s => !bookedSlots.Contains(s.Start))
                 .Where(s => !isToday || s.Start > now)
                 .Select(s => new
                 {
                     startTime = s.Start.ToString(@"hh\:mm"),
                     endTime = s.End.ToString(@"hh\:mm"),
                     startTimeSpan = s.Start,
-                    endTimeSpan = s.End
+                    endTimeSpan = s.End,
+                    isBooked = bookedSlots.Contains(s.Start)
                 })
                 .ToList();
 
@@ -160,6 +160,16 @@ namespace Healthcare.API.Controllers
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
             if (patient == null) return BadRequest(new { message = "Only patients can create appointments" });
 
+            var startTime = dto.StartTime;
+            var endTime = dto.EndTime;
+
+            // If StartTime/EndTime are not provided (e.g. from Flutter), extract from AppointmentDate.TimeOfDay
+            if (startTime == TimeSpan.Zero && dto.AppointmentDate.TimeOfDay != TimeSpan.Zero)
+            {
+                startTime = dto.AppointmentDate.TimeOfDay;
+                endTime = startTime.Add(TimeSpan.FromMinutes(30)); // default 30-min slot
+            }
+
             // Begin transaction — prevents race conditions
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -168,7 +178,7 @@ namespace Healthcare.API.Controllers
                 var conflict = await _context.Appointments.AnyAsync(a =>
                     a.DoctorId == dto.DoctorId
                     && a.AppointmentDate.Date == dto.AppointmentDate.Date
-                    && a.StartTime == dto.StartTime
+                    && a.StartTime == startTime
                     && (a.Status == "Pending" || a.Status == "Confirmed"));
 
                 if (conflict)
@@ -182,8 +192,8 @@ namespace Healthcare.API.Controllers
                     DoctorId = dto.DoctorId,
                     PatientId = patient.Id,
                     AppointmentDate = dto.AppointmentDate.Date,
-                    StartTime = dto.StartTime,
-                    EndTime = dto.EndTime,
+                    StartTime = startTime,
+                    EndTime = endTime,
                     Status = "Pending",
                     Reason = dto.Reason,
                     CreatedAt = DateTime.UtcNow
@@ -231,34 +241,37 @@ namespace Healthcare.API.Controllers
                 var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
                 if (doctor == null) return NotFound();
 
-                var appointments = await _context.Appointments
+                var rawDoctor = await _context.Appointments
                     .Include(a => a.Patient).ThenInclude(p => p!.User)
                     .Include(a => a.Encounter).ThenInclude(e => e!.Vitals)
                     .Include(a => a.Encounter).ThenInclude(e => e!.Orders)
                     .Where(a => a.DoctorId == doctor.Id)
                     .OrderBy(a => a.AppointmentDate).ThenBy(a => a.StartTime)
-                    .Select(a => new
-                    {
-                        a.Id,
-                        a.AppointmentDate,
-                        StartTime = a.StartTime.ToString(@"hh\:mm"),
-                        EndTime = a.EndTime.ToString(@"hh\:mm"),
-                        a.Status,
-                        a.Reason,
-                        Notes = a.Encounter != null ? a.Encounter.Notes : null,
-                        a.CreatedAt,
-                        PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
-                        PatientId = a.PatientId,
-                        Vitals = (a.Encounter != null ? a.Encounter.Vitals : new List<Vital>()).Select(v => new
-                        {
-                            v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
-                        }).ToList(),
-                        Orders = (a.Encounter != null ? a.Encounter.Orders : new List<Order>()).Select(o => new
-                        {
-                            o.Id, o.OrderType, o.Description, o.CreatedAt
-                        }).ToList()
-                    })
                     .ToListAsync();
+
+                var appointments = rawDoctor.Select(a => new
+                {
+                    a.Id,
+                    AppointmentDate = a.AppointmentDate.Date,
+                    StartTime = a.StartTime.ToString(@"hh\:mm"),
+                    EndTime = a.EndTime.ToString(@"hh\:mm"),
+                    a.Status,
+                    a.Reason,
+                    Notes = a.Encounter?.Notes,
+                    a.CreatedAt,
+                    PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
+                    PatientId = a.PatientId,
+                    EncounterId = a.Encounter?.Id,
+                    EncounterStatus = a.Encounter?.Status,
+                    Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new
+                    {
+                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
+                    }).ToList(),
+                    Orders = (a.Encounter?.Orders ?? new List<Order>()).Select(o => new
+                    {
+                        o.Id, o.OrderType, o.Description, o.CreatedAt
+                    }).ToList()
+                }).ToList();
 
                 return Ok(appointments);
             }
@@ -267,35 +280,38 @@ namespace Healthcare.API.Controllers
                 var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
                 if (patient == null) return NotFound();
 
-                var appointments = await _context.Appointments
+                var rawPatient = await _context.Appointments
                     .Include(a => a.Doctor).ThenInclude(d => d!.User)
                     .Include(a => a.Encounter).ThenInclude(e => e!.Vitals)
                     .Include(a => a.Encounter).ThenInclude(e => e!.Orders)
                     .Where(a => a.PatientId == patient.Id)
                     .OrderByDescending(a => a.AppointmentDate).ThenBy(a => a.StartTime)
-                    .Select(a => new
-                    {
-                        a.Id,
-                        a.AppointmentDate,
-                        StartTime = a.StartTime.ToString(@"hh\:mm"),
-                        EndTime = a.EndTime.ToString(@"hh\:mm"),
-                        a.Status,
-                        a.Reason,
-                        Notes = a.Encounter != null ? a.Encounter.Notes : null,
-                        a.CreatedAt,
-                        DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
-                        Specialization = a.Doctor.Specialization,
-                        ConsultationFee = a.Doctor.ConsultationFee,
-                        Vitals = (a.Encounter != null ? a.Encounter.Vitals : new List<Vital>()).Select(v => new
-                        {
-                            v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
-                        }).ToList(),
-                        Orders = (a.Encounter != null ? a.Encounter.Orders : new List<Order>()).Select(o => new
-                        {
-                            o.Id, o.OrderType, o.Description, o.CreatedAt
-                        }).ToList()
-                    })
                     .ToListAsync();
+
+                var appointments = rawPatient.Select(a => new
+                {
+                    a.Id,
+                    AppointmentDate = a.AppointmentDate.Date,
+                    StartTime = a.StartTime.ToString(@"hh\:mm"),
+                    EndTime = a.EndTime.ToString(@"hh\:mm"),
+                    a.Status,
+                    a.Reason,
+                    Notes = a.Encounter?.Notes,
+                    a.CreatedAt,
+                    DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
+                    Specialization = a.Doctor.Specialization,
+                    ConsultationFee = a.Doctor.ConsultationFee,
+                    EncounterId = a.Encounter?.Id,
+                    EncounterStatus = a.Encounter?.Status,
+                    Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new
+                    {
+                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
+                    }).ToList(),
+                    Orders = (a.Encounter?.Orders ?? new List<Order>()).Select(o => new
+                    {
+                        o.Id, o.OrderType, o.Description, o.CreatedAt
+                    }).ToList()
+                }).ToList();
 
                 return Ok(appointments);
             }

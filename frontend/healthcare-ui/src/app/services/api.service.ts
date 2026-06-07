@@ -28,6 +28,26 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/auth/register`, details);
   }
 
+  // ─── Patient Profile ────────────────────────────────────────────────────────
+
+  getPatientProfile(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/patients/me`, { headers: this.getHeaders() });
+  }
+
+  updatePatientProfile(profile: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/patients/me`, profile, { headers: this.getHeaders() });
+  }
+
+  // ─── Doctor Profile ─────────────────────────────────────────────────────────
+
+  getDoctorProfile(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/doctors/me`, { headers: this.getHeaders() });
+  }
+
+  updateDoctorProfile(profile: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/doctors/me`, profile, { headers: this.getHeaders() });
+  }
+
   // ─── Doctors ───────────────────────────────────────────────────────────────
 
   getDoctors(specialization?: string): Observable<any> {
