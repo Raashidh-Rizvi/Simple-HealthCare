@@ -59,48 +59,7 @@ namespace Healthcare.API.Controllers
             return Ok(new { message = "Checked in successfully", encounterId = encounter.Id });
         }
 
-        [HttpPost("{id}/vitals")]
-        public async Task<IActionResult> RecordVitals(int id, [FromBody] VitalDto dto)
-        {
-            var encounter = await _context.Encounters
-                .Include(e => e.Vitals)
-                .FirstOrDefaultAsync(e => e.Id == id);
 
-            if (encounter == null) return NotFound(new { message = "Encounter not found" });
-
-            if (encounter.Status == "Completed")
-                return BadRequest(new { message = "Cannot add vitals to a completed encounter" });
-
-            var vital = new Vital
-            {
-                EncounterId = id,
-                HeartRate = dto.HeartRate?.ToString(),
-                BloodPressureSystolic = dto.BloodPressureSystolic,
-                BloodPressureDiastolic = dto.BloodPressureDiastolic,
-                RespiratoryRate = dto.RespiratoryRate,
-                Temperature = dto.Temperature?.ToString(),
-                Weight = dto.Weight?.ToString(),
-                Height = dto.Height,
-                BMI = dto.BMI,
-                BloodSugar = dto.BloodSugar,
-                OxygenSaturation = dto.OxygenSaturation,
-                RecordedBy = User.FindFirstValue(ClaimTypes.Email) ?? "System",
-                IsHomeReading = dto.IsHomeReading,
-                RecordedAt = DateTime.UtcNow
-            };
-
-            encounter.Vitals.Add(vital);
-            
-            // Advance status if needed
-            if (encounter.Status == "CheckedIn")
-            {
-                encounter.Status = "VitalsRecorded";
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Vitals recorded successfully", vitalId = vital.Id });
-        }
 
         [HttpPut("{id}/consultation/start")]
         [Authorize(Roles = "Doctor,doctor")]
@@ -191,20 +150,6 @@ namespace Healthcare.API.Controllers
         }
     }
 
-    public class VitalDto
-    {
-        public int? HeartRate { get; set; }
-        public int? BloodPressureSystolic { get; set; }
-        public int? BloodPressureDiastolic { get; set; }
-        public string? RespiratoryRate { get; set; }
-        public decimal? Temperature { get; set; }
-        public decimal? Weight { get; set; }
-        public string? Height { get; set; }
-        public string? BMI { get; set; }
-        public string? BloodSugar { get; set; }
-        public string? OxygenSaturation { get; set; }
-        public bool IsHomeReading { get; set; }
-    }
 
     public class OrderDto
     {

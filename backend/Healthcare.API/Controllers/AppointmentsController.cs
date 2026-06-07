@@ -131,8 +131,8 @@ namespace Healthcare.API.Controllers
                 .ToListAsync();
 
             // 5. Remove past slots if today; return ALL with isBooked flag so frontend can show them
-            var now = DateTime.UtcNow.TimeOfDay;
-            var isToday = dateOnly == DateTime.UtcNow.Date;
+            var now = DateTime.Now.TimeOfDay;
+            var isToday = dateOnly == DateTime.Now.Date;
 
             var available = allSlots
                 .Where(s => !isToday || s.Start > now)
@@ -265,7 +265,7 @@ namespace Healthcare.API.Controllers
                     EncounterStatus = a.Encounter?.Status,
                     Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new
                     {
-                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
+                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, Weight = v.WeightKg, v.RecordedAt
                     }).ToList(),
                     Orders = (a.Encounter?.Orders ?? new List<Order>()).Select(o => new
                     {
@@ -288,6 +288,7 @@ namespace Healthcare.API.Controllers
                     .OrderByDescending(a => a.AppointmentDate).ThenBy(a => a.StartTime)
                     .ToListAsync();
 
+
                 var appointments = rawPatient.Select(a => new
                 {
                     a.Id,
@@ -298,6 +299,7 @@ namespace Healthcare.API.Controllers
                     a.Reason,
                     Notes = a.Encounter?.Notes,
                     a.CreatedAt,
+                    a.DoctorId,
                     DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
                     Specialization = a.Doctor.Specialization,
                     ConsultationFee = a.Doctor.ConsultationFee,
@@ -305,7 +307,7 @@ namespace Healthcare.API.Controllers
                     EncounterStatus = a.Encounter?.Status,
                     Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new
                     {
-                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, v.Weight, v.RecordedAt
+                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, Weight = v.WeightKg, v.RecordedAt
                     }).ToList(),
                     Orders = (a.Encounter?.Orders ?? new List<Order>()).Select(o => new
                     {
@@ -594,55 +596,19 @@ namespace Healthcare.API.Controllers
             return Ok(new { message = "Marked as read" });
         }
 
-        // ─── Home Vitals ────────────────────────────────────────────────────────
-        [HttpPost("{id}/vitals")]
-        [Authorize(Roles = "Patient,patient")]
-        public async Task<IActionResult> AddHomeVitals(int id, [FromBody] VitalDto dto)
+        [HttpPut("notifications/read-all")]
+        public async Task<IActionResult> MarkAllNotificationsRead()
         {
             var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
-            var appointment = await _context.Appointments
-                .Include(a => a.Encounter)
-                .Include(a => a.Patient)
-                .FirstOrDefaultAsync(a => a.Id == id);
-                
-            if (appointment == null) return NotFound(new { message = "Appointment not found" });
-            
-            if (appointment.Patient!.UserId != userId)
-                return Forbid();
+            await _context.Notifications
+                .Where(n => n.UserId == userId && !n.IsRead)
+                .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true));
 
-            var encounter = appointment.Encounter;
-            if (encounter == null)
-            {
-                encounter = new Encounter
-                {
-                    AppointmentId = appointment.Id,
-                    PatientId = appointment.PatientId,
-                    DoctorId = appointment.DoctorId,
-                    Status = "HomeVitalsRecorded"
-                };
-                _context.Encounters.Add(encounter);
-                await _context.SaveChangesAsync(); // Save to get ID
-            }
-
-            var vital = new Vital
-            {
-                EncounterId = encounter.Id,
-                HeartRate = dto.HeartRate?.ToString(),
-                BloodPressureSystolic = dto.BloodPressureSystolic,
-                BloodPressureDiastolic = dto.BloodPressureDiastolic,
-                Temperature = dto.Temperature?.ToString(),
-                Weight = dto.Weight?.ToString(),
-                IsHomeReading = true, // Force to true for this endpoint
-                RecordedBy = "Patient",
-                RecordedAt = DateTime.UtcNow
-            };
-
-            _context.Vitals.Add(vital);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Home vitals recorded successfully" });
+            return Ok(new { message = "All marked as read" });
         }
+
+
     }
 }

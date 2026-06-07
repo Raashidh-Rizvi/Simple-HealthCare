@@ -9,6 +9,7 @@ interface Slot {
   endTime: string;
   startTimeSpan: string;
   endTimeSpan: string;
+  isBooked?: boolean;
 }
 
 @Component({
@@ -122,10 +123,13 @@ interface Slot {
               *ngFor="let slot of availableSlots"
               class="slot-btn"
               [class.selected]="selectedSlot?.startTime === slot.startTime"
-              (click)="selectSlot(slot)"
+              [class.booked]="slot.isBooked"
+              [disabled]="slot.isBooked"
+              (click)="!slot.isBooked && selectSlot(slot)"
               [id]="'slot-' + slot.startTime"
             >
               {{ slot.startTime }} – {{ slot.endTime }}
+              <span *ngIf="slot.isBooked" class="booked-tag">Booked</span>
             </button>
           </div>
 
@@ -332,6 +336,20 @@ interface Slot {
       background: var(--primary, #6366f1);
       color: var(--text-inverse);
     }
+    .slot-btn.booked {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.05);
+      color: var(--text-muted);
+    }
+    .booked-tag {
+      display: block;
+      font-size: 0.65rem;
+      color: #ef4444;
+      margin-top: 2px;
+      font-weight: 600;
+    }
     .no-slots { text-align: center; padding: 2rem; color: var(--text-muted, #94a3b8); }
     .no-slots-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
     .text-sm { font-size: 0.8rem; }
@@ -408,8 +426,9 @@ export class AppointmentBookingComponent implements OnInit {
   constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit() {
-    // Set min date to today
-    this.minDate = new Date().toISOString().split('T')[0];
+    // Set min date to today using local timezone
+    const today = new Date();
+    this.minDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     this.loadDoctors();
   }
 
@@ -443,6 +462,7 @@ export class AppointmentBookingComponent implements OnInit {
   }
 
   selectSlot(slot: Slot) {
+    if (slot.isBooked) return;
     this.selectedSlot = slot;
   }
 

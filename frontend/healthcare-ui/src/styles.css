@@ -90,6 +90,10 @@
   --glass-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
 }
 
+html {
+  height: 100%;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -100,10 +104,11 @@
 body {
   background-color: var(--background-base);
   color: var(--text-main);
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  overflow-y: auto;
   /* Premium Mesh Gradient Background */
   background-image: 
     radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15), transparent 25%),
@@ -148,7 +153,7 @@ a:hover {
   padding: 24px;
   transition: var(--transition-smooth);
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* Allow inner content & pseudo-elements to show */
 }
 
 .glass-card::before {
@@ -392,6 +397,7 @@ select.form-control option:disabled {
 .badge-primary { background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
 .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
 .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-accent  { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 .badge-danger  { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 .badge-muted   { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
 .text-main { color: var(--text-main); }
@@ -399,6 +405,7 @@ select.form-control option:disabled {
 :root.light-theme .badge-primary { color: #4338ca; border-color: rgba(99, 102, 241, 0.4); }
 :root.light-theme .badge-success { color: #047857; border-color: rgba(16, 185, 129, 0.4); }
 :root.light-theme .badge-warning { color: #b45309; border-color: rgba(245, 158, 11, 0.4); }
+:root.light-theme .badge-accent  { color: #b45309; border-color: rgba(245, 158, 11, 0.4); }
 :root.light-theme .badge-danger { color: #b91c1c; border-color: rgba(239, 68, 68, 0.4); }
 :root.light-theme .badge-muted { color: #334155; border-color: rgba(148, 163, 184, 0.4); }
 

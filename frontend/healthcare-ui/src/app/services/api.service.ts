@@ -115,6 +115,10 @@ export class ApiService {
     return this.http.put(`${this.apiUrl}/appointments/notifications/${id}/read`, {}, { headers: this.getHeaders() });
   }
 
+  markAllNotificationsRead(): Observable<any> {
+    return this.http.put(`${this.apiUrl}/appointments/notifications/read-all`, {}, { headers: this.getHeaders() });
+  }
+
   // ─── Schedules / Availability ──────────────────────────────────────────────
 
   getScheduleSlots(): Observable<any> {

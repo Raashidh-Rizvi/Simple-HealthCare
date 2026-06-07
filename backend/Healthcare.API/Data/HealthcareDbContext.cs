@@ -94,6 +94,44 @@ namespace Healthcare.API.Data
                 .WithMany(e => e.Vitals)
                 .HasForeignKey(v => v.EncounterId)
                 .OnDelete(DeleteBehavior.Cascade);
+                
+            modelBuilder.Entity<Vital>()
+                .HasOne(v => v.Patient)
+                .WithMany()
+                .HasForeignKey(v => v.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Vital>()
+                .HasOne(v => v.RecordedBy)
+                .WithMany()
+                .HasForeignKey(v => v.RecordedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Vital>()
+                .HasOne(v => v.VerifiedBy)
+                .WithMany()
+                .HasForeignKey(v => v.VerifiedById)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Vital>()
+                .Property(v => v.HeightCm)
+                .HasColumnType("decimal(5,2)");
+
+            modelBuilder.Entity<Vital>()
+                .Property(v => v.WeightKg)
+                .HasColumnType("decimal(5,2)");
+
+            modelBuilder.Entity<Vital>()
+                .Property(v => v.BMI)
+                .HasColumnType("decimal(5,2)");
+
+            modelBuilder.Entity<Vital>()
+                .Property(v => v.Temperature)
+                .HasColumnType("decimal(4,2)");
+
+            modelBuilder.Entity<Vital>()
+                .Property(v => v.BloodSugar)
+                .HasColumnType("decimal(6,2)");
 
             // Order
             modelBuilder.Entity<Order>()

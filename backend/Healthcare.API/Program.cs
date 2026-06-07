@@ -21,6 +21,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<HealthcareDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<Healthcare.API.Services.IVitalService, Healthcare.API.Services.VitalService>();
+
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];

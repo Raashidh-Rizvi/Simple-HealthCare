@@ -108,22 +108,40 @@ namespace Healthcare.API.Models
         public int EncounterId { get; set; }
         public Encounter? Encounter { get; set; }
         
-        public string? Height { get; set; }
-        public string? Weight { get; set; }
-        public string? Temperature { get; set; }
-        public string? HeartRate { get; set; }
-        public string? RespiratoryRate { get; set; }
+        public int PatientId { get; set; }
+        public Patient? Patient { get; set; }
+        
+        public int? RecordedById { get; set; }
+        public User? RecordedBy { get; set; }
+        
+        public decimal? HeightCm { get; set; }
+        public decimal? WeightKg { get; set; }
+        public decimal? BMI { get; set; }
+        public decimal? Temperature { get; set; }
+        
+        public int? HeartRate { get; set; }
+        public int? RespiratoryRate { get; set; }
+        public int? OxygenSaturation { get; set; }
         
         public int? BloodPressureSystolic { get; set; }
         public int? BloodPressureDiastolic { get; set; }
         
-        public string? OxygenSaturation { get; set; }
-        public string? BloodSugar { get; set; }
-        public string? BMI { get; set; }
+        public decimal? BloodSugar { get; set; }
+        public int? PainScore { get; set; }
         
-        public string? RecordedBy { get; set; }
-        public bool IsHomeReading { get; set; } = false;
+        public string? Notes { get; set; }
+        
         public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
+        
+        public int? VerifiedById { get; set; }
+        public User? VerifiedBy { get; set; }
+        public DateTime? VerifiedAt { get; set; }
+        
+        public string Status { get; set; } = "Pending"; // Pending, Verified, Rejected
+        public string Source { get; set; } = "Clinical"; // Clinical, Patient Submitted
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class Encounter

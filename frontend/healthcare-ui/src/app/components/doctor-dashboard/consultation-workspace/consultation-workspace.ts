@@ -2,11 +2,15 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SpeechRecognitionService } from '../../../services/speech-recognition.service';
+import { BaseChartDirective } from 'ng2-charts';
+import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-consultation-workspace',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BaseChartDirective],
   template: `
     <div class="consultation-workspace">
       <!-- Left Panel: Patient Summary -->
@@ -101,6 +105,7 @@ import { SpeechRecognitionService } from '../../../services/speech-recognition.s
       <div class="panel">
         <div class="tabs">
           <div class="tab" [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">History</div>
+          <div class="tab" [class.active]="activeTab === 'vitals'" (click)="activeTab = 'vitals'">Vitals</div>
           <div class="tab" [class.active]="activeTab === 'meds'" (click)="activeTab = 'meds'">Meds</div>
           <div class="tab" [class.active]="activeTab === 'labs'" (click)="activeTab = 'labs'">Labs</div>
         </div>
@@ -115,6 +120,85 @@ import { SpeechRecognitionService } from '../../../services/speech-recognition.s
               <p class="text-xs text-muted mb-2">{{ visit.diagnosis }}</p>
               <button (click)="viewHistoryDetails(visit)" class="text-xs text-primary bg-transparent border-none cursor-pointer hover:underline p-0">View Details</button>
             </div>
+          </div>
+          
+          <!-- Vitals Tab -->
+          <div *ngIf="activeTab === 'vitals'" class="flex-col gap-4 overflow-y-auto" style="max-height: 400px; padding-right: 8px;">
+             <!-- Unverified Patient Vitals -->
+             <div *ngIf="patientSubmittedVitals && patientSubmittedVitals.length > 0" class="mb-4">
+               <h4 class="text-sm font-semibold mb-2 text-warning flex items-center gap-2">⚠️ Patient Submitted Vitals (Pending Verification)</h4>
+               <div *ngFor="let v of patientSubmittedVitals" class="inner-card border-warning p-3 mb-2">
+                 <div class="flex justify-between text-xs text-muted mb-2">
+                   <span>Recorded: {{ v.recordedAt | date:'short' }}</span>
+                   <span>Source: {{ v.source }}</span>
+                 </div>
+                 <div class="grid grid-cols-2 gap-2 text-sm">
+                   <div *ngIf="v.bloodPressureSystolic">BP: {{ v.bloodPressureSystolic }}/{{ v.bloodPressureDiastolic }}</div>
+                   <div *ngIf="v.heartRate">HR: {{ v.heartRate }} bpm</div>
+                   <div *ngIf="v.temperature">Temp: {{ v.temperature }} °C</div>
+                   <div *ngIf="v.weightKg">Weight: {{ v.weightKg }} kg</div>
+                 </div>
+                 <button class="btn btn-outline btn-xs w-full mt-3" style="border-color: var(--accent); color: var(--accent);" (click)="verifyVital.emit(v.id)">Verify Readings</button>
+               </div>
+             </div>
+
+             <!-- Record New Vitals Form -->
+             <h4 class="text-sm font-semibold mb-2 text-primary">Record Clinical Vitals</h4>
+             <div class="inner-card p-3">
+               <div class="grid grid-cols-2 gap-3">
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Sys BP</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureSystolic" placeholder="120">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Dia BP</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureDiastolic" placeholder="80">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Heart Rate</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heartRate" placeholder="72">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Resp Rate</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.respiratoryRate" placeholder="16">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Temp (°C)</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.temperature" placeholder="37.0">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Weight (kg)</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.weightKg" placeholder="70.5">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">Height (cm)</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heightCm" placeholder="175">
+                 </div>
+                 <div class="form-group mb-0">
+                   <label class="form-label text-xs">SpO2 (%)</label>
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.oxygenSaturation" placeholder="98">
+                 </div>
+               </div>
+               <button class="btn btn-primary btn-sm w-full mt-4" (click)="submitClinicalVitals()">Save Clinical Vitals</button>
+             </div>
+
+             <!-- Vitals Trends Graph (Placeholder for Chart.js) -->
+             <div class="mt-4" *ngIf="lineChartData.datasets.length > 0">
+               <h4 class="text-sm font-semibold mb-2 text-muted">Vitals History & Trends (Sys BP & Temp)</h4>
+               <div class="inner-card p-4" style="height: 250px;">
+                 <canvas baseChart
+                   [data]="lineChartData"
+                   [options]="lineChartOptions"
+                   [type]="lineChartType">
+                 </canvas>
+               </div>
+             </div>
+             <div class="mt-4" *ngIf="lineChartData.datasets.length === 0">
+               <h4 class="text-sm font-semibold mb-2 text-muted">Vitals History & Trends</h4>
+               <div class="inner-card p-4 text-center text-muted text-sm">
+                 Not enough data for trends.
+               </div>
+             </div>
           </div>
           
           <!-- Meds Tab (Medication Module) -->
@@ -177,9 +261,30 @@ export class ConsultationWorkspaceComponent {
   
   @Output() onComplete = new EventEmitter<any>();
   @Output() onCancel = new EventEmitter<void>();
+  @Output() onSaveVitals = new EventEmitter<any>();
+  @Output() verifyVital = new EventEmitter<number>();
 
-  activeTab = 'history';
+  @Input() patientSubmittedVitals: any[] = [];
   
+  newVitalForm: any = {};
+
+  activeTab = 'vitals';
+  
+  // Chart Configuration
+  lineChartData: ChartConfiguration['data'] = {
+    datasets: [],
+    labels: []
+  };
+  lineChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: { position: 'left', beginAtZero: false },
+      y1: { position: 'right', beginAtZero: false, grid: { drawOnChartArea: false } }
+    }
+  };
+  lineChartType: ChartType = 'line';
+
   notes = {
     chiefComplaint: '',
     hpi: '',
@@ -228,5 +333,40 @@ export class ConsultationWorkspaceComponent {
     if (!this.orderedLabs.includes(lab)) {
       this.orderedLabs.push(lab);
     }
+  }
+
+  submitClinicalVitals() {
+    this.onSaveVitals.emit({
+      ...this.newVitalForm,
+      isHomeReading: false
+    });
+    this.newVitalForm = {}; // clear form
+  }
+
+  @Input() set patientVitalsHistory(history: any[]) {
+    if (!history || history.length === 0) return;
+    
+    // Reverse so oldest is first for chart
+    const data = [...history].reverse();
+    
+    this.lineChartData = {
+      labels: data.map(v => new Date(v.recordedAt).toLocaleDateString()),
+      datasets: [
+        {
+          data: data.map(v => v.bloodPressureSystolic || null),
+          label: 'Sys BP',
+          borderColor: '#ef4444',
+          tension: 0.3,
+          yAxisID: 'y'
+        },
+        {
+          data: data.map(v => v.temperature || null),
+          label: 'Temp (°C)',
+          borderColor: '#f59e0b',
+          tension: 0.3,
+          yAxisID: 'y1'
+        }
+      ]
+    };
   }
 }
