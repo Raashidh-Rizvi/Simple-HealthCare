@@ -116,6 +116,7 @@ namespace Healthcare.API.Controllers
                 .Include(p => p.User)
                 .Where(p => (p.User != null && p.User.FirstName.ToLower().Contains(q)) || 
                             (p.User != null && p.User.LastName.ToLower().Contains(q)) || 
+                            (p.User != null && (p.User.FirstName.ToLower() + " " + p.User.LastName.ToLower()).Contains(q)) ||
                             p.Id.ToString() == q ||
                             (p.PhoneNumber != null && p.PhoneNumber.Contains(q)))
                 .Select(p => new {

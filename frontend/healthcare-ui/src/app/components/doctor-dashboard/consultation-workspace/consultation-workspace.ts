@@ -184,35 +184,35 @@ Chart.register(...registerables);
                <div class="grid grid-cols-2 gap-3">
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Sys BP</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureSystolic" placeholder="120">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureSystolic" placeholder="e.g. 90-120">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Dia BP</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureDiastolic" placeholder="80">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureDiastolic" placeholder="e.g. 60-80">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Heart Rate</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heartRate" placeholder="72">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heartRate" placeholder="e.g. 60-100">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Resp Rate</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.respiratoryRate" placeholder="16">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.respiratoryRate" placeholder="e.g. 12-20">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Temp (°C)</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.temperature" placeholder="37.0">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.temperature" placeholder="e.g. 36.1-37.2">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Weight (kg)</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.weightKg" placeholder="70.5">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.weightKg" placeholder="e.g. 70.5">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">Height (cm)</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heightCm" placeholder="175">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heightCm" placeholder="e.g. 175">
                  </div>
                  <div class="form-group mb-0">
                    <label class="form-label text-xs">SpO2 (%)</label>
-                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.oxygenSaturation" placeholder="98">
+                   <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.oxygenSaturation" placeholder="e.g. 95-100">
                  </div>
                </div>
                <button class="btn btn-primary btn-sm w-full mt-4" (click)="submitClinicalVitals()">Save Clinical Vitals</button>
@@ -239,19 +239,38 @@ Chart.register(...registerables);
           
           <!-- Meds Tab (Medication Module) -->
           <div *ngIf="activeTab === 'meds'" class="flex-col gap-4">
-            <div class="form-group">
-              <input type="text" class="form-control" placeholder="Search medications...">
-            </div>
-            <div class="inner-card bg-opacity-10 border-primary">
-              <div class="flex justify-between items-center mb-2">
-                <strong class="text-main">Paracetamol</strong>
-                <span class="text-xs text-muted">500mg</span>
+            <div class="inner-card bg-opacity-10 border-primary p-3">
+              <div class="form-group mb-2">
+                <label class="form-label text-xs">Medication Name</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="newPrescriptionForm.name" placeholder="e.g., Paracetamol">
               </div>
-              <div class="flex gap-2 mb-2">
-                <select class="form-control form-control-sm text-xs p-1 h-auto"><option>Twice Daily</option></select>
-                <select class="form-control form-control-sm text-xs p-1 h-auto"><option>5 Days</option></select>
+              <div class="form-group mb-2">
+                <label class="form-label text-xs">Dosage</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="newPrescriptionForm.dosage" placeholder="e.g., 500mg">
               </div>
-              <button (click)="addPrescription()" class="btn btn-primary w-full btn-xs">Add Prescription</button>
+              <div class="flex gap-2 mb-3">
+                <div class="flex-1">
+                  <label class="form-label text-xs">Frequency</label>
+                  <select class="form-control form-control-sm text-xs p-1 h-auto" [(ngModel)]="newPrescriptionForm.frequency">
+                    <option value="Once Daily">Once Daily</option>
+                    <option value="Twice Daily">Twice Daily</option>
+                    <option value="Thrice Daily">Thrice Daily</option>
+                    <option value="As Needed">As Needed</option>
+                  </select>
+                </div>
+                <div class="flex-1">
+                  <label class="form-label text-xs">Duration</label>
+                  <select class="form-control form-control-sm text-xs p-1 h-auto" [(ngModel)]="newPrescriptionForm.duration">
+                    <option value="1 Day">1 Day</option>
+                    <option value="3 Days">3 Days</option>
+                    <option value="5 Days">5 Days</option>
+                    <option value="1 Week">1 Week</option>
+                    <option value="2 Weeks">2 Weeks</option>
+                    <option value="1 Month">1 Month</option>
+                  </select>
+                </div>
+              </div>
+              <button (click)="addPrescription()" class="btn btn-primary w-full btn-xs" [disabled]="!newPrescriptionForm.name">Add Prescription</button>
             </div>
             
             <h4 class="text-sm font-semibold mt-4 mb-2 text-muted">Current Prescriptions</h4>
@@ -382,35 +401,35 @@ Chart.register(...registerables);
           <div class="grid grid-cols-2 gap-3">
             <div class="form-group mb-0">
               <label class="form-label text-xs">Sys BP</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureSystolic" placeholder="120">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureSystolic" placeholder="e.g. 90-120">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">Dia BP</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureDiastolic" placeholder="80">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureDiastolic" placeholder="e.g. 60-80">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">Heart Rate</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heartRate" placeholder="72">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heartRate" placeholder="e.g. 60-100">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">Resp Rate</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.respiratoryRate" placeholder="16">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.respiratoryRate" placeholder="e.g. 12-20">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">Temp (°C)</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.temperature" placeholder="37.0">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.temperature" placeholder="e.g. 36.1-37.2">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">Weight (kg)</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.weightKg" placeholder="70.5">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.weightKg" placeholder="e.g. 70.5">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">Height (cm)</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heightCm" placeholder="175">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heightCm" placeholder="e.g. 175">
             </div>
             <div class="form-group mb-0">
               <label class="form-label text-xs">SpO2 (%)</label>
-              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.oxygenSaturation" placeholder="98">
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.oxygenSaturation" placeholder="e.g. 95-100">
             </div>
           </div>
           <div class="flex gap-2 mt-4">
@@ -445,6 +464,7 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
   newAllergy = '';
   isAddingCondition = false;
   newCondition = '';
+  newPrescriptionForm: any = { name: '', dosage: '', frequency: 'Twice Daily', duration: '5 Days' };
 
   activeTab = 'vitals';
   activeField: 'chiefComplaint' | 'hpi' | 'assessment' | 'plan' = 'hpi';
@@ -568,6 +588,7 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
       this.patient.allergies.push(this.newAllergy.trim());
       this.newAllergy = '';
       this.isAddingAllergy = false;
+      this.onSave.emit({ notes: this.notes, prescriptions: this.currentPrescriptions, orderedLabs: this.orderedLabs, allergies: this.patient.allergies, conditions: this.patient.conditions, silent: true });
     }
   }
 
@@ -583,11 +604,15 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
       this.patient.conditions.push(this.newCondition.trim());
       this.newCondition = '';
       this.isAddingCondition = false;
+      this.onSave.emit({ notes: this.notes, prescriptions: this.currentPrescriptions, orderedLabs: this.orderedLabs, allergies: this.patient.allergies, conditions: this.patient.conditions, silent: true });
     }
   }
 
   addPrescription() {
-    this.currentPrescriptions.push({ name: 'Paracetamol', dosage: '500mg', frequency: 'Twice Daily', duration: '5 Days' });
+    if (this.newPrescriptionForm.name) {
+      this.currentPrescriptions.push({ ...this.newPrescriptionForm });
+      this.newPrescriptionForm = { name: '', dosage: '', frequency: 'Twice Daily', duration: '5 Days' };
+    }
   }
 
   orderLab(lab: string) {

@@ -33,10 +33,10 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           </div>
           <!-- <div class="nav-item" [class.active]="activeNav === 'queue'" (click)="navigate('queue')">
             <span class="nav-icon">👥</span> Patient Queue
-          </div>
-          <div class="nav-item" [class.active]="activeNav === 'records'" (click)="navigate('records')">
-            <span class="nav-icon">📁</span> Medical Records
           </div> -->
+          <div class="nav-item" [class.active]="activeNav === 'records'" (click)="navigate('records')">
+            <span class="nav-icon">👥</span> Patients
+          </div>
           <div class="nav-item" [class.active]="activeNav === 'telemedicine'" (click)="navigate('telemedicine')">
             <span class="nav-icon">💻</span> Telemedicine
           </div>
@@ -420,7 +420,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
         <!-- RECORDS VIEW -->
         <div class="dashboard-content" *ngIf="!inConsultation && activeNav === 'records'">
           <div class="glass-card">
-            <h3 class="m-0 mb-6">Medical Records Search</h3>
+            <h3 class="m-0 mb-6">Patients Search</h3>
             <div class="flex gap-4 mb-6">
               <input type="text" class="form-control" placeholder="Search patient by name, ID, or phone..." [(ngModel)]="recordSearchTerm" (keyup.enter)="searchRecords()">
               <button class="btn btn-primary" (click)="searchRecords()">
@@ -1192,7 +1192,13 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
         vitals: a.vitals,
         notes: a.notes,
         diagnosis: a.diagnosis,
-        appointmentDate: a.appointmentDate
+        appointmentDate: a.appointmentDate,
+        allergies: a.allergies,
+        conditions: a.conditions,
+        dateOfBirth: a.dateOfBirth,
+        gender: a.gender,
+        phone: a.phone,
+        bloodGroup: a.bloodGroup
       };
     };
 
@@ -1232,7 +1238,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           waitMins: 12,
           priority: priority,
           encounterId: a.encounterId,
-          appointment: a
+          appointment: mapAppointment(a)
         };
       });
 
@@ -1392,7 +1398,13 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       encounterId: apt.encounterId,
       encounterStatus: apt.encounterStatus,
       vitals: apt.vitals,
-      status: 'Waiting'
+      status: 'Waiting',
+      allergies: apt.allergies,
+      conditions: apt.conditions,
+      gender: apt.gender,
+      phone: apt.phone,
+      bloodGroup: apt.bloodGroup,
+      dateOfBirth: apt.dateOfBirth
     };
     this.startConsultation(scheduleApt);
   }
@@ -1414,6 +1426,14 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.executeStartConsultation(apt);
   }
 
+  calculateAge(dateOfBirth: string | undefined): number {
+    if (!dateOfBirth) return 45; // Default if missing
+    const dob = new Date(dateOfBirth);
+    const diff = Date.now() - dob.getTime();
+    const age = new Date(diff).getUTCFullYear() - 1970;
+    return age > 0 ? age : 45;
+  }
+
   executeStartConsultation(apt: any) {
     this.api.startConsultation(apt.encounterId).subscribe({
       next: () => {
@@ -1422,10 +1442,10 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           patientDbId: apt.patientId,
           appointmentId: apt.id,
           name: apt.name,
-          age: 45,
-          gender: 'Male',
-          allergies: ['Penicillin'],
-          conditions: []
+          age: this.calculateAge(apt.dateOfBirth),
+          gender: apt.gender || 'Male',
+          allergies: apt.allergies || [],
+          conditions: apt.conditions || []
         };
         
         if (apt.vitals && apt.vitals.length > 0) {
@@ -1520,7 +1540,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     }
 
     this.api.saveConsultation(encounterId, { notes: notesSummary, diagnosis, orders, allergies: event.allergies, conditions: event.conditions }).subscribe({
-      next: () => { alert('Consultation details saved successfully!'); },
+      next: () => { if (!event.silent) alert('Consultation details saved successfully!'); },
       error: (err) => { alert('Failed to save consultation details: ' + (err.error?.message || err.message)); }
     });
   }
@@ -1570,8 +1590,6 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
         this.searchResults = results;
         if (results.length === 0) {
           alert('No records found for that search.');
-        } else if (results.length === 1) {
-          this.selectPatient(results[0]);
         }
       },
       error: (err: any) => {

@@ -87,11 +87,6 @@ Chart.register(...registerables);
               <span class="kpi-value">{{ completedCount }}</span>
               <span class="kpi-trend">All time</span>
             </div>
-            <div class="glass-card kpi-card border-t-4 border-accent">
-              <span class="kpi-title">Total Appointments</span>
-              <span class="kpi-value">{{ appointments.length }}</span>
-              <span class="kpi-trend">All records</span>
-            </div>
           </div>
 
           <!-- Recent Activity & Quick Actions -->
@@ -338,31 +333,31 @@ Chart.register(...registerables);
                   <div class="grid grid-cols-2 gap-3">
                     <div class="form-group mb-0">
                       <label class="form-label text-xs">Systolic BP</label>
-                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureSystolic" name="sys" placeholder="120">
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureSystolic" name="sys" placeholder="e.g. 90-120">
                     </div>
                     <div class="form-group mb-0">
                       <label class="form-label text-xs">Diastolic BP</label>
-                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureDiastolic" name="dia" placeholder="80">
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureDiastolic" name="dia" placeholder="e.g. 60-80">
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="form-group mb-0">
                       <label class="form-label text-xs">Heart Rate (bpm)</label>
-                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.heartRate" name="hr" placeholder="72">
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.heartRate" name="hr" placeholder="e.g. 60-100">
                     </div>
                     <div class="form-group mb-0">
                       <label class="form-label text-xs">Temperature (°C)</label>
-                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.temperature" name="temp" placeholder="37">
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.temperature" name="temp" placeholder="e.g. 36.1-37.2">
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div class="form-group mb-0">
                       <label class="form-label text-xs">Weight (kg)</label>
-                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.weightKg" name="weight" placeholder="70.5">
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.weightKg" name="weight" placeholder="e.g. 70.5">
                     </div>
                     <div class="form-group mb-0">
                       <label class="form-label text-xs">SpO2 (%)</label>
-                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.oxygenSaturation" name="spo2" placeholder="98">
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.oxygenSaturation" name="spo2" placeholder="e.g. 95-100">
                     </div>
                   </div>
                   <button type="submit" class="btn btn-primary mt-3" [disabled]="submittingVitals">
