@@ -265,6 +265,12 @@ namespace Healthcare.API.Controllers
                     a.CreatedAt,
                     PatientName = a.Patient!.User!.FirstName + " " + a.Patient.User.LastName,
                     PatientId = a.PatientId,
+                    DateOfBirth = a.Patient.DateOfBirth,
+                    Gender = a.Patient.Gender,
+                    BloodGroup = a.Patient.BloodGroup,
+                    Phone = a.Patient.PhoneNumber,
+                    Allergies = a.Patient.Allergies,
+                    Conditions = a.Patient.Conditions,
                     EncounterId = a.Encounter?.Id,
                     EncounterStatus = a.Encounter?.Status,
                     Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new

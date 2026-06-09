@@ -130,8 +130,8 @@ Chart.register(...registerables);
           </div>
           <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-700">
             <button class="btn btn-outline" (click)="onCancel.emit()">Cancel</button>
-            <button class="btn btn-primary" (click)="onSave.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs })">Save Draft</button>
-            <button class="btn btn-secondary" (click)="onComplete.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs })">Complete Consultation</button>
+            <button class="btn btn-primary" (click)="onSave.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs, allergies: patient.allergies, conditions: patient.conditions })">Save Draft</button>
+            <button class="btn btn-secondary" (click)="onComplete.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs, allergies: patient.allergies, conditions: patient.conditions })">Complete Consultation</button>
           </div>
         </div>
       </div>

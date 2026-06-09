@@ -83,6 +83,8 @@ namespace Healthcare.API.Controllers
             public string? Notes { get; set; }
             public string? Diagnosis { get; set; }
             public List<OrderDto>? Orders { get; set; }
+            public List<string>? Allergies { get; set; }
+            public List<string>? Conditions { get; set; }
         }
 
         [HttpPut("{id}/consultation/save")]
@@ -90,12 +92,19 @@ namespace Healthcare.API.Controllers
         public async Task<IActionResult> SaveConsultation(int id, [FromBody] CompleteConsultationDto dto)
         {
             var encounter = await _context.Encounters
+                .Include(e => e.Patient)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (encounter == null) return NotFound();
 
             encounter.Notes = dto.Notes;
             encounter.Diagnosis = dto.Diagnosis;
+
+            if (encounter.Patient != null)
+            {
+                if (dto.Allergies != null) encounter.Patient.Allergies = dto.Allergies;
+                if (dto.Conditions != null) encounter.Patient.Conditions = dto.Conditions;
+            }
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Consultation details saved successfully" });
@@ -108,6 +117,7 @@ namespace Healthcare.API.Controllers
             var encounter = await _context.Encounters
                 .Include(e => e.Orders)
                 .Include(e => e.Appointment)
+                .Include(e => e.Patient)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (encounter == null) return NotFound();
@@ -116,6 +126,12 @@ namespace Healthcare.API.Controllers
             encounter.Diagnosis = dto.Diagnosis;
             encounter.ConsultationEndTime = DateTime.UtcNow;
             encounter.Status = "Completed";
+
+            if (encounter.Patient != null)
+            {
+                if (dto.Allergies != null) encounter.Patient.Allergies = dto.Allergies;
+                if (dto.Conditions != null) encounter.Patient.Conditions = dto.Conditions;
+            }
 
             if (encounter.Appointment != null)
             {

@@ -40,6 +40,8 @@ namespace Healthcare.API.Models
         public string? PhoneNumber { get; set; }
         public string? Gender { get; set; } // Male | Female | Other
         public string? BloodGroup { get; set; } // A+, B-, O+, etc.
+        public List<string>? Allergies { get; set; } = new();
+        public List<string>? Conditions { get; set; } = new();
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 

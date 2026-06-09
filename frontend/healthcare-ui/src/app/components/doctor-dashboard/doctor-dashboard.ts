@@ -1494,7 +1494,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.api.completeConsultation(encounterId, { notes: notesSummary, diagnosis, orders }).subscribe({
+    this.api.completeConsultation(encounterId, { notes: notesSummary, diagnosis, orders, allergies: event.allergies, conditions: event.conditions }).subscribe({
       next: () => { alert('Consultation completed successfully!'); this.endConsultation(); },
       error: (err) => { alert('Failed to complete consultation: ' + (err.error?.message || err.message)); }
     });
@@ -1519,7 +1519,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.api.saveConsultation(encounterId, { notes: notesSummary, diagnosis, orders }).subscribe({
+    this.api.saveConsultation(encounterId, { notes: notesSummary, diagnosis, orders, allergies: event.allergies, conditions: event.conditions }).subscribe({
       next: () => { alert('Consultation details saved successfully!'); },
       error: (err) => { alert('Failed to save consultation details: ' + (err.error?.message || err.message)); }
     });

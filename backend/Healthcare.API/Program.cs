@@ -78,6 +78,7 @@ app.MapHub<Healthcare.API.Hubs.VideoCallHub>("/hubs/videocall");
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<HealthcareDbContext>();
+    context.Database.EnsureCreated();
 
     // Seed Admin user
     if (!context.Users.Any(u => u.Role == "Admin"))
