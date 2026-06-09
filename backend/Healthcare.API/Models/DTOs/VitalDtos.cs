@@ -2,7 +2,7 @@ namespace Healthcare.API.Models.DTOs
 {
     public class CreateVitalDto
     {
-        public int EncounterId { get; set; }
+        public int? EncounterId { get; set; }
         public int PatientId { get; set; }
         public decimal? HeightCm { get; set; }
         public decimal? WeightKg { get; set; }
@@ -36,7 +36,7 @@ namespace Healthcare.API.Models.DTOs
     public class VitalResponseDto
     {
         public int Id { get; set; }
-        public int EncounterId { get; set; }
+        public int? EncounterId { get; set; }
         public int PatientId { get; set; }
         public string PatientName { get; set; } = string.Empty;
         

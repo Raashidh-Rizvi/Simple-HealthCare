@@ -16,6 +16,18 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   final AppointmentService _appointmentService = AppointmentService();
   List<Appointment> _appointments = [];
   bool _isLoading = true;
+  String _searchQuery = '';
+
+  List<Appointment> get _filteredAppointments {
+    if (_searchQuery.isEmpty) return _appointments;
+    final query = _searchQuery.toLowerCase();
+    return _appointments.where((apt) {
+      final docName = apt.doctorName?.toLowerCase() ?? '';
+      final spec = apt.specialization?.toLowerCase() ?? '';
+      final status = apt.status.toLowerCase();
+      return docName.contains(query) || spec.contains(query) || status.contains(query);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -49,13 +61,34 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _appointments.isEmpty
-              ? const Center(child: Text('No appointments found'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _appointments.length,
-                  itemBuilder: (context, index) {
-                    final apt = _appointments[index];
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search by doctor, specialty, or status...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: _filteredAppointments.isEmpty
+                      ? const Center(child: Text('No appointments found'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _filteredAppointments.length,
+                          itemBuilder: (context, index) {
+                            final apt = _filteredAppointments[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(
@@ -92,6 +125,9 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                       ),
                     );
                   },
+                ),
+                    ),
+                  ],
                 ),
     );
   }

@@ -169,6 +169,20 @@ interface Slot {
           </div>
 
           <div class="form-group mt-4">
+            <label class="form-label">Appointment Type</label>
+            <div class="flex gap-4 mt-2">
+              <label class="cursor-pointer flex items-center gap-2">
+                <input type="radio" name="appointmentType" value="Hospital Visit" [(ngModel)]="type">
+                <span>🏥 Hospital Visit</span>
+              </label>
+              <label class="cursor-pointer flex items-center gap-2">
+                <input type="radio" name="appointmentType" value="Video Consultation" [(ngModel)]="type">
+                <span>💻 Video Consultation</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group mt-4">
             <label class="form-label">Reason / Chief Complaint</label>
             <input type="text" class="form-control" [(ngModel)]="reason" id="reason-input"
               placeholder="e.g. Chest pain, Skin rash...">
@@ -212,7 +226,7 @@ interface Slot {
       align-items: flex-start;
       justify-content: center;
       padding: 2rem 1rem;
-      background: var(--bg-gradient, #0f172a);
+      background: transparent;
     }
     .booking-card {
       width: 100%;
@@ -235,7 +249,7 @@ interface Slot {
       align-items: center;
       margin-bottom: 2rem;
       padding: 1rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid var(--surface-border);
     }
     .step {
       display: flex;
@@ -247,7 +261,7 @@ interface Slot {
     .step-num {
       width: 32px; height: 32px;
       border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.2);
+      border: 2px solid var(--surface-border);
       display: flex; align-items: center; justify-content: center;
       font-weight: 700; font-size: 0.85rem;
       color: var(--text-muted, #94a3b8);
@@ -268,7 +282,7 @@ interface Slot {
     .step-line {
       flex: 1;
       height: 2px;
-      background: rgba(255,255,255,0.1);
+      background: var(--surface-border);
       margin: 0 0.5rem;
       margin-bottom: 1rem;
       transition: background 0.3s;
@@ -286,14 +300,14 @@ interface Slot {
     .doctor-card {
       display: flex; align-items: center; gap: 1rem;
       padding: 1rem 1.25rem;
-      border: 2px solid rgba(255,255,255,0.08);
+      border: 2px solid var(--surface-border);
       border-radius: 12px;
       cursor: pointer;
       transition: all 0.2s;
-      background: rgba(255,255,255,0.03);
+      background: var(--glass-inner-bg);
     }
-    .doctor-card:hover { border-color: var(--primary, #6366f1); background: rgba(99,102,241,0.08); }
-    .doctor-card.selected { border-color: var(--primary, #6366f1); background: rgba(99,102,241,0.12); }
+    .doctor-card:hover { border-color: var(--primary, #6366f1); background: var(--glass-inner-hover-bg); }
+    .doctor-card.selected { border-color: var(--primary, #6366f1); background: var(--glass-inner-hover-bg); }
     .doctor-avatar {
       width: 48px; height: 48px; border-radius: 50%;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -320,9 +334,9 @@ interface Slot {
     }
     .slot-btn {
       padding: 0.7rem 0.5rem;
-      border: 2px solid rgba(255,255,255,0.12);
+      border: 2px solid var(--surface-border);
       border-radius: 10px;
-      background: rgba(255,255,255,0.04);
+      background: var(--glass-inner-bg);
       color: inherit;
       font-size: 0.875rem;
       font-weight: 500;
@@ -356,8 +370,8 @@ interface Slot {
 
     /* Confirm summary */
     .confirm-summary {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--glass-inner-bg);
+      border: 1px solid var(--surface-border);
       border-radius: 12px;
       padding: 1.25rem;
       margin-bottom: 1rem;
@@ -365,7 +379,7 @@ interface Slot {
     .summary-row {
       display: flex; justify-content: space-between;
       padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid var(--surface-border);
     }
     .summary-row:last-child { border-bottom: none; }
     .summary-label { color: var(--text-muted, #94a3b8); font-size: 0.875rem; }
@@ -392,7 +406,7 @@ interface Slot {
     .loading-msg { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted, #94a3b8); padding: 1rem 0; }
     .spinner {
       width: 20px; height: 20px;
-      border: 2px solid rgba(255,255,255,0.1);
+      border: 2px solid var(--surface-border);
       border-top-color: var(--primary, #6366f1);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -416,6 +430,7 @@ export class AppointmentBookingComponent implements OnInit {
   minDate: string = '';
   availableSlots: Slot[] = [];
   selectedSlot: Slot | null = null;
+  type: string = 'Hospital Visit';
   reason: string = '';
   notes: string = '';
   loadingDoctors = false;
@@ -491,6 +506,7 @@ export class AppointmentBookingComponent implements OnInit {
       appointmentDate: this.selectedDate,
       startTime: this.selectedSlot.startTimeSpan,
       endTime: this.selectedSlot.endTimeSpan,
+      type: this.type,
       reason: this.reason,
       notes: this.notes
     };

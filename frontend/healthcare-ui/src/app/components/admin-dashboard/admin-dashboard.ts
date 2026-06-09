@@ -60,9 +60,12 @@ import { ApiService } from '../../services/api.service';
       <div *ngIf="activeTab === 'doctors'" class="tab-content glass-card" id="doctors-tab">
         <div class="tab-toolbar">
           <h3 class="tab-title">Manage Doctors</h3>
-          <button class="btn btn-primary btn-sm" (click)="showAddDoctor = !showAddDoctor" id="toggle-add-doctor-btn">
-            {{ showAddDoctor ? '✕ Cancel' : '+ Add Doctor' }}
-          </button>
+          <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" class="form-control" style="width: 250px;" placeholder="Search doctors..." [(ngModel)]="doctorSearchTerm">
+            <button class="btn btn-primary btn-sm" (click)="showAddDoctor = !showAddDoctor" id="toggle-add-doctor-btn">
+              {{ showAddDoctor ? '✕ Cancel' : '+ Add Doctor' }}
+            </button>
+          </div>
         </div>
 
         <!-- Add Doctor Form -->
@@ -107,7 +110,7 @@ import { ApiService } from '../../services/api.service';
         <!-- Doctors Table -->
         <div class="table-wrap">
           <div *ngIf="loadingDoctors" class="loading-msg">Loading doctors...</div>
-          <table *ngIf="!loadingDoctors && doctors.length > 0" class="admin-table" id="doctors-table">
+          <table *ngIf="!loadingDoctors && filteredDoctors.length > 0" class="admin-table" id="doctors-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -120,7 +123,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let doc of doctors" [id]="'doctor-row-' + doc.id">
+              <tr *ngFor="let doc of filteredDoctors" [id]="'doctor-row-' + doc.id">
                 <td>
                   <div class="name-cell">
                     <div class="avatar-sm">{{ doc.firstName[0] }}{{ doc.lastName[0] }}</div>
@@ -148,7 +151,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </tbody>
           </table>
-          <div *ngIf="!loadingDoctors && doctors.length === 0" class="empty-msg">No doctors found.</div>
+          <div *ngIf="!loadingDoctors && filteredDoctors.length === 0" class="empty-msg">No doctors found.</div>
         </div>
       </div>
 
@@ -156,11 +159,14 @@ import { ApiService } from '../../services/api.service';
       <div *ngIf="activeTab === 'patients'" class="tab-content glass-card" id="patients-tab">
         <div class="tab-toolbar">
           <h3 class="tab-title">All Patients</h3>
-          <span class="count-badge">{{ patients.length }} registered</span>
+          <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" class="form-control" style="width: 250px;" placeholder="Search patients..." [(ngModel)]="patientSearchTerm">
+            <span class="count-badge">{{ filteredPatients.length }} registered</span>
+          </div>
         </div>
         <div class="table-wrap">
           <div *ngIf="loadingPatients" class="loading-msg">Loading patients...</div>
-          <table *ngIf="!loadingPatients && patients.length > 0" class="admin-table" id="patients-table">
+          <table *ngIf="!loadingPatients && filteredPatients.length > 0" class="admin-table" id="patients-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -172,7 +178,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of patients" [id]="'patient-row-' + p.id">
+              <tr *ngFor="let p of filteredPatients" [id]="'patient-row-' + p.id">
                 <td>
                   <div class="cell-name">{{ p.firstName }} {{ p.lastName }}</div>
                 </td>
@@ -187,7 +193,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </tbody>
           </table>
-          <div *ngIf="!loadingPatients && patients.length === 0" class="empty-msg">No patients found.</div>
+          <div *ngIf="!loadingPatients && filteredPatients.length === 0" class="empty-msg">No patients found.</div>
         </div>
       </div>
 
@@ -199,6 +205,7 @@ import { ApiService } from '../../services/api.service';
 
         <!-- Filters -->
         <div class="filter-row">
+          <input type="text" class="form-control filter-input" style="min-width: 200px;" placeholder="Search appointments..." [(ngModel)]="aptSearchTerm">
           <input type="date" class="form-control filter-input" [(ngModel)]="aptFilter.date" id="filter-date" placeholder="Filter by date">
           <select class="form-control filter-input" [(ngModel)]="aptFilter.status" id="filter-status">
             <option value="">All Statuses</option>
@@ -215,7 +222,7 @@ import { ApiService } from '../../services/api.service';
 
         <div class="table-wrap">
           <div *ngIf="loadingAppointments" class="loading-msg">Loading appointments...</div>
-          <table *ngIf="!loadingAppointments && adminAppointments.length > 0" class="admin-table" id="appointments-table">
+          <table *ngIf="!loadingAppointments && filteredAdminAppointments.length > 0" class="admin-table" id="appointments-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -229,7 +236,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let apt of adminAppointments" [id]="'apt-row-' + apt.id">
+              <tr *ngFor="let apt of filteredAdminAppointments" [id]="'apt-row-' + apt.id">
                 <td class="cell-sub">#{{ apt.id }}</td>
                 <td>{{ apt.patientName }}</td>
                 <td>
@@ -249,7 +256,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </tbody>
           </table>
-          <div *ngIf="!loadingAppointments && adminAppointments.length === 0" class="empty-msg">No appointments match your filters.</div>
+          <div *ngIf="!loadingAppointments && filteredAdminAppointments.length === 0" class="empty-msg">No appointments match your filters.</div>
         </div>
       </div>
 
@@ -512,15 +519,50 @@ export class AdminDashboardComponent implements OnInit {
   loadingDoctors = false;
   showAddDoctor = false;
   newDoctor = { firstName: '', lastName: '', email: '', password: '', specialization: '', licenseNumber: '', experienceYears: 0, consultationFee: 0 };
+  doctorSearchTerm = '';
+
+  get filteredDoctors(): any[] {
+    if (!this.doctorSearchTerm) return this.doctors;
+    const term = this.doctorSearchTerm.toLowerCase();
+    return this.doctors.filter(d => 
+      d.firstName.toLowerCase().includes(term) ||
+      d.lastName.toLowerCase().includes(term) ||
+      d.specialization.toLowerCase().includes(term) ||
+      (d.email && d.email.toLowerCase().includes(term))
+    );
+  }
 
   // Patients
   patients: any[] = [];
   loadingPatients = false;
+  patientSearchTerm = '';
+
+  get filteredPatients(): any[] {
+    if (!this.patientSearchTerm) return this.patients;
+    const term = this.patientSearchTerm.toLowerCase();
+    return this.patients.filter(p => 
+      p.firstName.toLowerCase().includes(term) ||
+      p.lastName.toLowerCase().includes(term) ||
+      (p.email && p.email.toLowerCase().includes(term))
+    );
+  }
 
   // Appointments
   adminAppointments: any[] = [];
   loadingAppointments = false;
   aptFilter = { date: '', status: '' };
+  aptSearchTerm = '';
+
+  get filteredAdminAppointments(): any[] {
+    if (!this.aptSearchTerm) return this.adminAppointments;
+    const term = this.aptSearchTerm.toLowerCase();
+    return this.adminAppointments.filter(a => 
+      a.patientName?.toLowerCase().includes(term) ||
+      a.doctorName?.toLowerCase().includes(term) ||
+      a.reason?.toLowerCase().includes(term) ||
+      a.status?.toLowerCase().includes(term)
+    );
+  }
 
   // Schedules
   schedules: any[] = [];
@@ -601,6 +643,7 @@ export class AdminDashboardComponent implements OnInit {
 
   clearFilters() {
     this.aptFilter = { date: '', status: '' };
+    this.aptSearchTerm = '';
     this.loadAdminAppointments();
   }
 

@@ -16,6 +16,17 @@ export class NurseDashboardComponent implements OnInit {
   loading = true;
   error = '';
   success = '';
+  searchTerm = '';
+
+  get filteredEncounters(): any[] {
+    if (!this.searchTerm) return this.encounters;
+    const term = this.searchTerm.toLowerCase();
+    return this.encounters.filter(enc => 
+      (enc.patientName?.toLowerCase().includes(term)) ||
+      (enc.doctorName?.toLowerCase().includes(term)) ||
+      (enc.status?.toLowerCase().includes(term))
+    );
+  }
 
   selectedEncounter: any = null;
   vitalsData = {

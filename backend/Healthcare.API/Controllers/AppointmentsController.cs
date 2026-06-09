@@ -28,6 +28,7 @@ namespace Healthcare.API.Controllers
             public DateTime AppointmentDate { get; set; }
             public TimeSpan StartTime { get; set; }
             public TimeSpan EndTime { get; set; }
+            public string Type { get; set; } = "In-Person";
             public string? Reason { get; set; }
             public string? Notes { get; set; }
         }
@@ -195,6 +196,7 @@ namespace Healthcare.API.Controllers
                     StartTime = startTime,
                     EndTime = endTime,
                     Status = "Pending",
+                    Type = dto.Type,
                     Reason = dto.Reason,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -256,6 +258,7 @@ namespace Healthcare.API.Controllers
                     StartTime = a.StartTime.ToString(@"hh\:mm"),
                     EndTime = a.EndTime.ToString(@"hh\:mm"),
                     a.Status,
+                    a.Type,
                     a.Reason,
                     Notes = a.Encounter?.Notes,
                     a.CreatedAt,
@@ -296,6 +299,7 @@ namespace Healthcare.API.Controllers
                     StartTime = a.StartTime.ToString(@"hh\:mm"),
                     EndTime = a.EndTime.ToString(@"hh\:mm"),
                     a.Status,
+                    a.Type,
                     a.Reason,
                     Notes = a.Encounter?.Notes,
                     a.CreatedAt,
@@ -342,6 +346,7 @@ namespace Healthcare.API.Controllers
                     StartTime = a.StartTime.ToString(@"hh\:mm"),
                     EndTime = a.EndTime.ToString(@"hh\:mm"),
                     a.Status,
+                    a.Type,
                     a.Reason,
                     a.CreatedAt,
                     DoctorName = a.Doctor!.User!.FirstName + " " + a.Doctor.User.LastName,
@@ -431,6 +436,7 @@ namespace Healthcare.API.Controllers
                     StartTime = dto.StartTime,
                     EndTime = dto.EndTime,
                     Status = "Pending",
+                    Type = appointment.Type,
                     Reason = dto.Reason ?? appointment.Reason,
                     CreatedAt = DateTime.UtcNow
                 };

@@ -1,9 +1,10 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SpeechRecognitionService } from '../../../services/speech-recognition.service';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
+import { Subscription } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -78,21 +79,24 @@ Chart.register(...registerables);
           </button>
         </div>
         <div class="panel-content flex-col gap-4">
+          <div *ngIf="speechService.isListening" class="text-xs text-warning mb-2 animate-pulse">
+            🎤 Listening... dictating into {{ getActiveFieldLabel() }}
+          </div>
           <div class="form-group mb-0">
             <label class="form-label">Chief Complaint</label>
-            <input type="text" [(ngModel)]="notes.chiefComplaint" class="form-control" placeholder="Primary reason for visit...">
+            <input type="text" [(ngModel)]="notes.chiefComplaint" (focus)="activeField = 'chiefComplaint'" class="form-control" placeholder="Primary reason for visit...">
           </div>
           <div class="form-group mb-0">
             <label class="form-label">History of Present Illness (HPI)</label>
-            <textarea [(ngModel)]="notes.hpi" rows="3" class="form-control" placeholder="Patient reports..."></textarea>
+            <textarea [(ngModel)]="notes.hpi" (focus)="activeField = 'hpi'" rows="3" class="form-control" placeholder="Patient reports..."></textarea>
           </div>
           <div class="form-group mb-0">
             <label class="form-label">Assessment / Diagnosis</label>
-            <textarea [(ngModel)]="notes.assessment" rows="2" class="form-control" placeholder="Enter diagnosis..."></textarea>
+            <textarea [(ngModel)]="notes.assessment" (focus)="activeField = 'assessment'" rows="2" class="form-control" placeholder="Enter diagnosis..."></textarea>
           </div>
           <div class="form-group mb-0 flex-1 flex flex-col">
             <label class="form-label">Plan</label>
-            <textarea [(ngModel)]="notes.plan" class="form-control flex-1" style="min-height: 100px;" placeholder="Treatment plan..."></textarea>
+            <textarea [(ngModel)]="notes.plan" (focus)="activeField = 'plan'" class="form-control flex-1" style="min-height: 100px;" placeholder="Treatment plan..."></textarea>
           </div>
           <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-700">
             <button class="btn btn-outline" (click)="onCancel.emit()">Cancel</button>
@@ -254,7 +258,7 @@ Chart.register(...registerables);
   `,
   styleUrl: './consultation-workspace.css'
 })
-export class ConsultationWorkspaceComponent {
+export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
   @Input() patient: any;
   @Input() vitals: any = {};
   @Input() history: any[] = [];
@@ -269,6 +273,8 @@ export class ConsultationWorkspaceComponent {
   newVitalForm: any = {};
 
   activeTab = 'vitals';
+  activeField: 'chiefComplaint' | 'hpi' | 'assessment' | 'plan' = 'hpi';
+  private speechSub: Subscription | null = null;
   
   // Chart Configuration
   lineChartData: ChartConfiguration['data'] = {
@@ -296,6 +302,34 @@ export class ConsultationWorkspaceComponent {
   orderedLabs: string[] = [];
 
   constructor(public speechService: SpeechRecognitionService) {}
+
+  ngOnInit() {
+    this.speechSub = this.speechService.transcript$.subscribe(text => {
+      if (text) {
+        if (!this.notes[this.activeField]) {
+          this.notes[this.activeField] = '';
+        }
+        this.notes[this.activeField] += (this.notes[this.activeField] ? ' ' : '') + text;
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.speechSub) {
+      this.speechSub.unsubscribe();
+    }
+    this.speechService.stop();
+  }
+
+  getActiveFieldLabel(): string {
+    switch(this.activeField) {
+      case 'chiefComplaint': return 'Chief Complaint';
+      case 'hpi': return 'History of Present Illness';
+      case 'assessment': return 'Assessment / Diagnosis';
+      case 'plan': return 'Plan';
+      default: return 'Notes';
+    }
+  }
 
   getInitials(name: string): string {
     if (!name) return '??';

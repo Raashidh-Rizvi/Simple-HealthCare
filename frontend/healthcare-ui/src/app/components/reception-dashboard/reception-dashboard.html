@@ -5,7 +5,10 @@
   </div>
 
   <div class="card content-card">
-    <h2>Today's Appointments</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+      <h2 style="margin: 0;">Today's Appointments</h2>
+      <input type="text" class="form-control" style="max-width: 300px;" placeholder="Filter by name, doctor, or status..." [(ngModel)]="searchTerm">
+    </div>
     
     <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
     <div *ngIf="success" class="alert alert-success">{{ success }}</div>
@@ -16,7 +19,11 @@
       No appointments scheduled for today.
     </div>
 
-    <div class="table-responsive" *ngIf="!loading && appointments.length > 0">
+    <div *ngIf="!loading && appointments.length > 0 && filteredAppointments.length === 0" class="no-data" style="margin-top: 1rem;">
+      No appointments match your filter.
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && appointments.length > 0 && filteredAppointments.length > 0">
       <table class="table table-striped">
         <thead>
           <tr>
@@ -29,7 +36,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let apt of appointments">
+          <tr *ngFor="let apt of filteredAppointments">
             <td>{{ apt.startTime }}</td>
             <td>{{ apt.patientName }}</td>
             <td>{{ apt.doctorName }}</td>

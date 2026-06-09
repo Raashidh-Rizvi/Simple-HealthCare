@@ -98,7 +98,7 @@ Chart.register(...registerables);
                   <strong class="text-main" style="font-size: 1.1rem;">Dr. {{ upcomingAppointments[0].doctorName }}</strong>
                   <span class="badge" [ngClass]="getStatusBadgeClass(upcomingAppointments[0].status)">{{ upcomingAppointments[0].status }}</span>
                 </div>
-                <p class="text-sm text-primary mb-3">{{ upcomingAppointments[0].specialization }}</p>
+                <p class="text-sm text-primary mb-3">{{ upcomingAppointments[0].specialization }} • {{ upcomingAppointments[0].type }}</p>
                 <div class="flex justify-between text-sm text-muted">
                   <span>📅 {{ upcomingAppointments[0].appointmentDate | date:'fullDate' }}</span>
                   <span>⏰ {{ upcomingAppointments[0].startTime }} – {{ upcomingAppointments[0].endTime }}</span>
@@ -147,12 +147,26 @@ Chart.register(...registerables);
           </div>
 
           <!-- Status Filter -->
-          <div class="flex gap-2 mb-4" style="flex-wrap: wrap;">
-            <button class="filter-btn" [class.active]="filterStatus === ''" (click)="filterStatus = ''">All ({{ appointments.length }})</button>
-            <button class="filter-btn" [class.active]="filterStatus === 'Pending'" (click)="filterStatus = 'Pending'">Pending ({{ countByStatus('Pending') }})</button>
-            <button class="filter-btn" [class.active]="filterStatus === 'Confirmed'" (click)="filterStatus = 'Confirmed'">Confirmed ({{ countByStatus('Confirmed') }})</button>
-            <button class="filter-btn" [class.active]="filterStatus === 'Completed'" (click)="filterStatus = 'Completed'">Completed ({{ countByStatus('Completed') }})</button>
-            <button class="filter-btn" [class.active]="filterStatus === 'Cancelled'" (click)="filterStatus = 'Cancelled'">Cancelled ({{ countByStatus('Cancelled') }})</button>
+          <div class="flex gap-2 mb-4" style="flex-wrap: wrap; justify-content: space-between; align-items: center;">
+            <div class="flex gap-2" style="flex-wrap: wrap;">
+              <button class="filter-btn" [class.active]="filterStatus === ''" (click)="filterStatus = ''">All ({{ appointments.length }})</button>
+              <button class="filter-btn" [class.active]="filterStatus === 'Pending'" (click)="filterStatus = 'Pending'">Pending ({{ countByStatus('Pending') }})</button>
+              <button class="filter-btn" [class.active]="filterStatus === 'Confirmed'" (click)="filterStatus = 'Confirmed'">Confirmed ({{ countByStatus('Confirmed') }})</button>
+              <button class="filter-btn" [class.active]="filterStatus === 'Completed'" (click)="filterStatus = 'Completed'">Completed ({{ countByStatus('Completed') }})</button>
+              <button class="filter-btn" [class.active]="filterStatus === 'Cancelled'" (click)="filterStatus = 'Cancelled'">Cancelled ({{ countByStatus('Cancelled') }})</button>
+            </div>
+            <div class="flex gap-2">
+              <div class="form-control flex items-center gap-2" style="width: auto; padding: 0 0.5rem;">
+                <span class="text-muted text-sm">Sort:</span>
+                <select style="border: none; background: transparent; outline: none; cursor: pointer; color: inherit; padding-right: 0.5rem;" [(ngModel)]="sortBy">
+                  <option value="dateDesc">Newest First</option>
+                  <option value="dateAsc">Oldest First</option>
+                  <option value="doctorAsc">Doctor (A-Z)</option>
+                  <option value="doctorDesc">Doctor (Z-A)</option>
+                </select>
+              </div>
+              <input type="text" class="form-control" style="max-width: 250px;" placeholder="Search appointments..." [(ngModel)]="searchTerm">
+            </div>
           </div>
 
           <div class="glass-card">
@@ -174,7 +188,7 @@ Chart.register(...registerables);
                   <strong class="text-main" style="font-size: 16px;">Dr. {{ apt.doctorName }}</strong>
                   <span class="badge" [ngClass]="getStatusBadgeClass(apt.status)">{{ apt.status }}</span>
                 </div>
-                <p class="text-sm text-primary mb-0">{{ apt.specialization }}</p>
+                <p class="text-sm text-primary mb-0">{{ apt.specialization }} • {{ apt.type }}</p>
                 
                 <div class="mt-2 text-sm text-muted">
                   <p class="mb-1"><strong class="text-main">📅 Date:</strong> {{ apt.appointmentDate | date:'mediumDate' }}</p>
@@ -185,6 +199,18 @@ Chart.register(...registerables);
                 <!-- Action Buttons -->
                 <div class="flex gap-2 mt-3 flex-wrap" (click)="$event.stopPropagation()">
                   <button class="btn btn-outline btn-xs" (click)="viewAppointmentDetails(apt)">View Details</button>
+                  <button 
+                    *ngIf="apt.type === 'Video Consultation' && (apt.status === 'Confirmed' || apt.status === 'Pending') && !apt.encounterId"
+                    class="btn btn-xs" style="background: rgba(34,197,94,0.15); color: var(--secondary); border: 1px solid rgba(34,197,94,0.3);"
+                    (click)="checkInVideoConsultation(apt)">
+                    🎥 Check In (Video)
+                  </button>
+                  <button 
+                    *ngIf="apt.type === 'Video Consultation' && apt.encounterId && apt.status !== 'Completed'"
+                    class="btn btn-xs" style="background: rgba(99,102,241,0.15); color: var(--primary); border: 1px solid rgba(99,102,241,0.3);"
+                    (click)="joinVideoRoom(apt)">
+                    🎥 Join Room
+                  </button>
                   <button 
                     *ngIf="apt.status === 'Pending' || apt.status === 'Confirmed'"
                     class="btn btn-xs" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);"
@@ -393,6 +419,10 @@ Chart.register(...registerables);
               <span class="modal-detail-value">{{ selectedAppointment.specialization }}</span>
             </div>
             <div class="modal-detail-item">
+              <span class="modal-detail-label">Type</span>
+              <span class="modal-detail-value">{{ selectedAppointment.type }}</span>
+            </div>
+            <div class="modal-detail-item">
               <span class="modal-detail-label">Date</span>
               <span class="modal-detail-value">{{ selectedAppointment.appointmentDate | date:'fullDate' }}</span>
             </div>
@@ -450,6 +480,18 @@ Chart.register(...registerables);
 
         <div class="flex justify-between mt-6 flex-wrap gap-3">
           <div class="flex gap-2">
+            <button 
+              *ngIf="selectedAppointment.type === 'Video Consultation' && (selectedAppointment.status === 'Confirmed' || selectedAppointment.status === 'Pending') && !selectedAppointment.encounterId"
+              class="btn btn-sm" style="background: rgba(34,197,94,0.15); color: var(--secondary); border: 1px solid rgba(34,197,94,0.3);"
+              (click)="checkInVideoConsultation(selectedAppointment); closeDetailsModal()">
+              🎥 Check In
+            </button>
+            <button 
+              *ngIf="selectedAppointment.type === 'Video Consultation' && selectedAppointment.encounterId && selectedAppointment.status !== 'Completed'"
+              class="btn btn-sm" style="background: rgba(99,102,241,0.15); color: var(--primary); border: 1px solid rgba(99,102,241,0.3);"
+              (click)="joinVideoRoom(selectedAppointment); closeDetailsModal()">
+              🎥 Join Room
+            </button>
             <button 
               *ngIf="selectedAppointment.status === 'Pending' || selectedAppointment.status === 'Confirmed'"
               class="btn btn-sm" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);"
@@ -679,6 +721,8 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   private timer: any;
   loading = false;
   filterStatus = '';
+  searchTerm = '';
+  sortBy = 'dateDesc';
   minDate = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 
   // Computed
@@ -686,8 +730,35 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     return this.appointments.filter(a => a.status === 'Pending' || a.status === 'Confirmed');
   }
   get filteredAppointments(): any[] {
-    if (!this.filterStatus) return this.appointments;
-    return this.appointments.filter(a => a.status === this.filterStatus);
+    let result = this.appointments;
+    if (this.filterStatus) {
+      result = result.filter(a => a.status === this.filterStatus);
+    }
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      result = result.filter(a => 
+        (a.doctorName?.toLowerCase().includes(term)) ||
+        (a.specialization?.toLowerCase().includes(term)) ||
+        (a.reason?.toLowerCase().includes(term))
+      );
+    }
+    
+    // Sorting
+    result = [...result]; // Clone to avoid mutating original
+    result.sort((a, b) => {
+      if (this.sortBy === 'dateDesc') {
+        return new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
+      } else if (this.sortBy === 'dateAsc') {
+        return new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime();
+      } else if (this.sortBy === 'doctorAsc') {
+        return (a.doctorName || '').localeCompare(b.doctorName || '');
+      } else if (this.sortBy === 'doctorDesc') {
+        return (b.doctorName || '').localeCompare(a.doctorName || '');
+      }
+      return 0;
+    });
+
+    return result;
   }
 
   // Details Modal State
@@ -797,6 +868,25 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
         alert('Failed to cancel: ' + (err.error?.message || err.message));
       }
     });
+  }
+
+  checkInVideoConsultation(apt: any) {
+    if (!confirm('Are you ready to check in for your video consultation?')) return;
+    this.api.checkInEncounter(apt.id).subscribe({
+      next: (res: any) => {
+        apt.encounterId = res.encounterId;
+        apt.encounterStatus = 'CheckedIn';
+        alert('Successfully checked in! You can now join the video room.');
+        this.loadAppointments(); // Reload to refresh state
+      },
+      error: (err: any) => alert('Failed to check in: ' + (err.error?.message || err.message))
+    });
+  }
+
+  joinVideoRoom(apt: any) {
+    alert('Connecting to the secure Video Consultation room... Please wait for the doctor to join.');
+    // Here you would navigate to the actual video consultation component or room URL
+    // e.g., this.router.navigate(['/patient/video-room', apt.encounterId]);
   }
 
   openRescheduleModal(apt: any) {

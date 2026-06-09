@@ -30,7 +30,7 @@ namespace Healthcare.API.Services
 
             var vital = new Vital
             {
-                EncounterId = dto.EncounterId,
+                EncounterId = dto.EncounterId == 0 ? null : dto.EncounterId,
                 PatientId = dto.PatientId,
                 RecordedById = recordedByUserId,
                 HeightCm = dto.HeightCm,

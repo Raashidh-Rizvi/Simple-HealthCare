@@ -183,12 +183,15 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           </div>
 
           <!-- Status Filter Tabs -->
-          <div class="flex gap-2 mb-4" style="flex-wrap: wrap;">
-            <button class="filter-btn" [class.active]="aptFilterStatus === ''" (click)="aptFilterStatus = ''">All ({{ appointments.length }})</button>
-            <button class="filter-btn" [class.active]="aptFilterStatus === 'Pending'" (click)="aptFilterStatus = 'Pending'">⏳ Pending ({{ countDoctorByStatus('Pending') }})</button>
-            <button class="filter-btn" [class.active]="aptFilterStatus === 'Confirmed'" (click)="aptFilterStatus = 'Confirmed'">✓ Confirmed ({{ countDoctorByStatus('Confirmed') }})</button>
-            <button class="filter-btn" [class.active]="aptFilterStatus === 'Completed'" (click)="aptFilterStatus = 'Completed'">✅ Completed ({{ countDoctorByStatus('Completed') }})</button>
-            <button class="filter-btn" [class.active]="aptFilterStatus === 'Cancelled'" (click)="aptFilterStatus = 'Cancelled'">❌ Cancelled ({{ countDoctorByStatus('Cancelled') }})</button>
+          <div class="flex gap-2 mb-4" style="flex-wrap: wrap; justify-content: space-between; align-items: center;">
+            <div class="flex gap-2" style="flex-wrap: wrap;">
+              <button class="filter-btn" [class.active]="aptFilterStatus === ''" (click)="aptFilterStatus = ''">All ({{ appointments.length }})</button>
+              <button class="filter-btn" [class.active]="aptFilterStatus === 'Pending'" (click)="aptFilterStatus = 'Pending'">⏳ Pending ({{ countDoctorByStatus('Pending') }})</button>
+              <button class="filter-btn" [class.active]="aptFilterStatus === 'Confirmed'" (click)="aptFilterStatus = 'Confirmed'">✓ Confirmed ({{ countDoctorByStatus('Confirmed') }})</button>
+              <button class="filter-btn" [class.active]="aptFilterStatus === 'Completed'" (click)="aptFilterStatus = 'Completed'">✅ Completed ({{ countDoctorByStatus('Completed') }})</button>
+              <button class="filter-btn" [class.active]="aptFilterStatus === 'Cancelled'" (click)="aptFilterStatus = 'Cancelled'">❌ Cancelled ({{ countDoctorByStatus('Cancelled') }})</button>
+            </div>
+            <input type="text" class="form-control" style="max-width: 250px;" placeholder="Search appointments..." [(ngModel)]="aptSearchTerm">
           </div>
 
           <div class="glass-card">
@@ -210,7 +213,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
                   <div class="patient-avatar">{{ getInitials(apt.patientName) }}</div>
                   <div>
                     <div class="font-semibold text-main">{{ apt.patientName }}</div>
-                    <div class="text-xs text-muted mt-1">📅 {{ apt.appointmentDate | date:'mediumDate' }} &nbsp; ⏰ {{ apt.startTime }} – {{ apt.endTime }}</div>
+                    <div class="text-xs text-muted mt-1">📅 {{ apt.appointmentDate | date:'mediumDate' }} &nbsp; ⏰ {{ apt.startTime }} – {{ apt.endTime }} &nbsp; • {{ apt.type }}</div>
                     <div class="text-xs text-muted mt-1" *ngIf="apt.reason">Reason: {{ apt.reason }}</div>
                   </div>
                 </div>
@@ -270,7 +273,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
                   <div class="flex gap-6 items-center">
                     <div class="text-main font-bold text-lg w-20">{{ apt.time }}</div>
                     <div>
-                      <div class="font-semibold text-lg">{{ apt.name }}</div>
+                      <div class="font-semibold text-lg">{{ apt.name }} <span class="text-sm font-normal text-primary ml-2">• {{ apt.type }}</span></div>
                       <div class="text-sm text-muted mt-1">Reason: {{ apt.reason }}</div>
                     </div>
                   </div>
@@ -630,6 +633,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   loadingApts = false;
 
   aptFilterStatus = '';
+  aptSearchTerm = '';
 
   mockSchedule: any[] = [];
   mockQueue: any[] = [];
@@ -657,8 +661,18 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   get filteredDoctorAppointments(): any[] {
-    if (!this.aptFilterStatus) return this.appointments;
-    return this.appointments.filter(a => a.status === this.aptFilterStatus);
+    let result = this.appointments;
+    if (this.aptFilterStatus) {
+      result = result.filter(a => a.status === this.aptFilterStatus);
+    }
+    if (this.aptSearchTerm) {
+      const term = this.aptSearchTerm.toLowerCase();
+      result = result.filter(a => 
+        (a.patientName?.toLowerCase().includes(term)) ||
+        (a.reason?.toLowerCase().includes(term))
+      );
+    }
+    return result;
   }
 
   constructor(private api: ApiService, private vitalService: VitalService, private router: Router) {}
@@ -742,6 +756,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           name: a.patientName,
           reason: a.reason || 'No reason specified',
           status: displayStatus,
+          type: a.type,
           rawStatus: a.status,
           patientId: a.patientId,
           encounterId: a.encounterId,
@@ -910,10 +925,22 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
 
   startConsultation(apt: any) {
     if (!apt.encounterId) {
-      alert('Patient has not checked in at reception yet.');
+      if (apt.type === 'Video Consultation' || confirm('Patient has not checked in at reception yet. Do you want to check them in and start the consultation?')) {
+        this.api.checkInEncounter(apt.id).subscribe({
+          next: (res: any) => {
+            apt.encounterId = res.encounterId;
+            this.executeStartConsultation(apt);
+          },
+          error: (err: any) => alert('Failed to check in: ' + (err.error?.message || err.message))
+        });
+      }
       return;
     }
 
+    this.executeStartConsultation(apt);
+  }
+
+  executeStartConsultation(apt: any) {
     this.api.startConsultation(apt.encounterId).subscribe({
       next: () => {
         this.activePatient = {

@@ -54,6 +54,7 @@ namespace Healthcare.API.Models
         public TimeSpan EndTime { get; set; }
         // Status: Pending | Confirmed | Cancelled | Completed | NoShow | Rejected
         public string Status { get; set; } = "Pending";
+        public string Type { get; set; } = "In-Person";
         public string? Reason { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
@@ -105,7 +106,7 @@ namespace Healthcare.API.Models
     public class Vital
     {
         public int Id { get; set; }
-        public int EncounterId { get; set; }
+        public int? EncounterId { get; set; }
         public Encounter? Encounter { get; set; }
         
         public int PatientId { get; set; }

@@ -93,7 +93,7 @@ namespace Healthcare.API.Data
                 .HasOne(v => v.Encounter)
                 .WithMany(e => e.Vitals)
                 .HasForeignKey(v => v.EncounterId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
                 
             modelBuilder.Entity<Vital>()
                 .HasOne(v => v.Patient)
