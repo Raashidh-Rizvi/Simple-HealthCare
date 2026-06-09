@@ -161,13 +161,13 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
               <div class="glass-card border-danger">
                 <h3 class="m-0 mb-4 text-danger flex items-center gap-2">⚠️ Clinical Alerts</h3>
                 <div class="flex-col gap-3">
-                  <div class="inner-card bg-red-900 bg-opacity-20 border-red-800 p-3">
-                    <strong class="text-sm text-danger block mb-1">Critical BP - Sarah Lee</strong>
-                    <span class="text-xs text-muted">BP measured 160/100 at triage.</span>
+                  <div *ngIf="clinicalAlerts.length === 0" class="text-muted text-sm py-2 text-center">
+                    No clinical alerts.
                   </div>
-                  <div class="inner-card bg-yellow-900 bg-opacity-20 border-yellow-800 p-3">
-                    <strong class="text-sm text-accent block mb-1">Abnormal Lab - John Smith</strong>
-                    <span class="text-xs text-muted">HbA1c levels elevated (8.2%).</span>
+                  <div *ngFor="let alert of clinicalAlerts.slice(0, 3)" class="inner-card p-3"
+                       [ngClass]="alert.type === 'danger' ? 'bg-red-900 bg-opacity-20 border-red-800' : 'bg-yellow-900 bg-opacity-20 border-yellow-800'">
+                    <strong class="text-sm block mb-1" [ngClass]="alert.type === 'danger' ? 'text-danger' : 'text-accent'">{{ alert.title }}</strong>
+                    <span class="text-xs text-muted">{{ alert.message }}</span>
                   </div>
                 </div>
               </div>
@@ -637,6 +637,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
 
   mockSchedule: any[] = [];
   mockQueue: any[] = [];
+  clinicalAlerts: any[] = [];
 
   // Notifications State
   notifications: any[] = [];
@@ -789,6 +790,34 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           appointment: a
         };
       });
+
+    this.clinicalAlerts = [];
+    todayApts.forEach(a => {
+      if (a.vitals && a.vitals.length > 0) {
+        const v = a.vitals[a.vitals.length - 1];
+        if (v.bloodPressureSystolic >= 140 || v.bloodPressureDiastolic >= 90) {
+          this.clinicalAlerts.push({
+            type: 'danger',
+            title: `Critical BP - ${a.patientName}`,
+            message: `BP measured ${v.bloodPressureSystolic}/${v.bloodPressureDiastolic}.`
+          });
+        }
+        if (v.heartRate > 100) {
+           this.clinicalAlerts.push({
+            type: 'warning',
+            title: `High Heart Rate - ${a.patientName}`,
+            message: `Pulse measured ${v.heartRate} bpm.`
+          });
+        }
+        if (v.temperature >= 100.4) {
+           this.clinicalAlerts.push({
+            type: 'warning',
+            title: `High Temp - ${a.patientName}`,
+            message: `Temperature measured ${v.temperature} °F.`
+          });
+        }
+      }
+    });
   }
 
   countDoctorByStatus(status: string): number {

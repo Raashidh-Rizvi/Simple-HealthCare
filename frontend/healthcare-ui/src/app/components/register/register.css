@@ -3,25 +3,21 @@
    ───────────────────────────────────────────── */
 
 .register-wrapper {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
 }
 
 .register-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  backdrop-filter: var(--glass-blur);
   border-radius: 20px;
   padding: 40px 36px;
   width: 100%;
   max-width: 480px;
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  box-shadow: var(--glass-shadow);
   animation: fadeInUp 0.4s ease;
 }
 
@@ -84,47 +80,12 @@
   gap: 0;
 }
 
+/* Form group uses styles.css */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-bottom: 18px;
-}
-
-.form-group {
-  margin-bottom: 18px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 7px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  letter-spacing: 0.01em;
-}
-
-.form-control {
-  width: 100%;
-  padding: 11px 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  font-size: 14px;
-  color: var(--text-main);
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-  box-sizing: border-box;
-}
-
-.form-control::placeholder {
-  color: var(--text-muted);
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--primary);
-  background: rgba(59, 130, 246, 0.08);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
 /* ── Password with toggle ── */
@@ -170,36 +131,7 @@
   margin-bottom: 16px;
 }
 
-/* ── Submit button ── */
-.btn-register {
-  width: 100%;
-  padding: 13px;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
-  color: var(--text-main);
-  font-size: 15px;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  letter-spacing: 0.02em;
-  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
-  margin-bottom: 20px;
-}
-
-.btn-register:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
-}
-
-.btn-register:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn-register:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* Button styles inherited from styles.css */
 
 .spinner {
   display: inline-block;

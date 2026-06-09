@@ -52,9 +52,9 @@ Chart.register(...registerables);
             <span class="current-time">{{ currentTime | date:'shortTime' }}</span>
             <div class="action-icon cursor-pointer" (click)="activeNav = 'notifications'">🔔<span class="icon-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span></div>
             <div class="user-profile-sm ml-4 pl-4 border-l border-gray-700 cursor-pointer" (click)="openProfileModal()">
-              <div class="avatar">PT</div>
+              <div class="avatar">{{ patientInitials | uppercase }}</div>
               <div class="flex-col">
-                <span class="text-sm font-bold">Patient</span>
+                <span class="text-sm font-bold">{{ patientName }}</span>
                 <span class="text-xs text-muted">My Profile</span>
               </div>
             </div>
@@ -109,27 +109,30 @@ Chart.register(...registerables);
 
             <div class="glass-card">
               <h3 class="m-0 mb-4 text-accent">Health Summary</h3>
-              <div class="flex-col gap-3">
-                <div class="inner-card flex justify-between items-center p-3">
+              <div class="flex-col gap-3" *ngIf="vitalsHistory.length > 0">
+                <div class="inner-card flex justify-between items-center p-3" *ngIf="vitalsHistory[0].bloodPressureSystolic">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">🩸</span>
                     <div>
                       <strong class="block text-main">Blood Pressure</strong>
-                      <span class="text-xs text-muted">Last reading: 2 days ago</span>
+                      <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
-                  <strong class="text-lg">118/75</strong>
+                  <strong class="text-lg">{{ vitalsHistory[0].bloodPressureSystolic }}/{{ vitalsHistory[0].bloodPressureDiastolic }}</strong>
                 </div>
-                <div class="inner-card flex justify-between items-center p-3">
+                <div class="inner-card flex justify-between items-center p-3" *ngIf="vitalsHistory[0].weightKg">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">⚖️</span>
                     <div>
                       <strong class="block text-main">Weight</strong>
-                      <span class="text-xs text-muted">Last reading: 1 week ago</span>
+                      <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
-                  <strong class="text-lg">165 lbs</strong>
+                  <strong class="text-lg">{{ vitalsHistory[0].weightKg }} kg</strong>
                 </div>
+              </div>
+              <div *ngIf="vitalsHistory.length === 0" class="text-muted text-sm py-4">
+                No health data available.
               </div>
               <button class="btn btn-outline btn-sm mt-4 w-full" (click)="activeNav = 'records'">View Health Records</button>
             </div>
@@ -298,18 +301,24 @@ Chart.register(...registerables);
               <div *ngIf="vitalsHistory.length === 0" class="text-center text-muted text-xs py-4">
                 No history available.
               </div>
-              <div *ngFor="let vital of vitalsHistory" class="inner-card mb-3 p-3">
+              <div *ngFor="let vital of vitalsHistory" class="inner-card mb-3 p-3" [style.border-left]="getRiskBorder(vital)">
                 <div class="flex justify-between text-xs text-muted mb-2">
                   <span>{{ vital.recordedAt | date:'medium' }}</span>
-                  <span class="badge" [ngClass]="vital.source === 'Clinical' ? 'badge-primary' : 'badge-warning'">
-                    {{ vital.source }}
-                  </span>
+                  <div class="flex gap-2 items-center">
+                    <span class="badge" [ngClass]="getRiskBadgeClass(vital)" *ngIf="getRiskLevel(vital) !== 'Normal'">
+                      {{ getRiskLevel(vital) }}
+                    </span>
+                    <span class="badge" [ngClass]="vital.source === 'Clinical' ? 'badge-primary' : 'badge-warning'">
+                      {{ vital.source }}
+                    </span>
+                  </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div *ngIf="vital.bloodPressureSystolic">BP: {{ vital.bloodPressureSystolic }}/{{ vital.bloodPressureDiastolic }}</div>
                   <div *ngIf="vital.heartRate">HR: {{ vital.heartRate }} bpm</div>
                   <div *ngIf="vital.temperature">Temp: {{ vital.temperature }} °C</div>
                   <div *ngIf="vital.weightKg">Weight: {{ vital.weightKg }} kg</div>
+                  <div *ngIf="vital.oxygenSaturation">SpO2: {{ vital.oxygenSaturation }}%</div>
                 </div>
                 <div *ngIf="vital.status === 'Verified'" class="text-xs text-success mt-2">✓ Verified by Doctor</div>
               </div>
@@ -713,6 +722,8 @@ Chart.register(...registerables);
   styleUrl: './patient-dashboard.css'
 })
 export class PatientDashboardComponent implements OnInit, OnDestroy {
+  patientName = 'Patient';
+  patientInitials = 'PT';
   appointments: any[] = [];
   upcomingCount = 0;
   completedCount = 0;
@@ -1063,6 +1074,8 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
       this.api.getPatientProfile().subscribe({
         next: (profile) => {
           this.patientId = profile.id;
+          this.patientName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Patient';
+          this.patientInitials = ((profile.firstName ? profile.firstName.charAt(0) : '') + (profile.lastName ? profile.lastName.charAt(0) : '')) || 'PT';
           this.fetchVitalsHistory();
         },
         error: (err) => console.error('Failed to load profile for vitals', err)
@@ -1070,6 +1083,34 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     } else {
       this.fetchVitalsHistory();
     }
+  }
+
+  getRiskLevel(vital: any): string {
+    if (!vital) return 'Normal';
+    if (vital.bloodPressureSystolic >= 180 || vital.bloodPressureDiastolic >= 120) return 'Critical';
+    if (vital.bloodPressureSystolic >= 140 || vital.bloodPressureDiastolic >= 90) return 'High';
+    if (vital.bloodPressureSystolic < 90 || vital.bloodPressureDiastolic < 60) return 'Low';
+    if (vital.heartRate > 120 || vital.heartRate < 50) return 'Critical';
+    if (vital.heartRate > 100 || vital.heartRate < 60) return 'Abnormal';
+    if (vital.temperature > 39.5 || vital.temperature < 35) return 'Critical';
+    if (vital.temperature > 37.5) return 'High';
+    if (vital.oxygenSaturation && vital.oxygenSaturation < 90) return 'Critical';
+    if (vital.oxygenSaturation && vital.oxygenSaturation < 95) return 'Low';
+    return 'Normal';
+  }
+
+  getRiskBadgeClass(vital: any): string {
+    const level = this.getRiskLevel(vital);
+    if (level === 'Critical') return 'badge-danger';
+    if (level === 'High' || level === 'Low' || level === 'Abnormal') return 'badge-warning';
+    return 'badge-success';
+  }
+
+  getRiskBorder(vital: any): string {
+    const level = this.getRiskLevel(vital);
+    if (level === 'Critical') return '4px solid var(--danger, #ef4444)';
+    if (level === 'High' || level === 'Low' || level === 'Abnormal') return '4px solid var(--accent, #f59e0b)';
+    return 'none';
   }
 
   fetchVitalsHistory() {

@@ -93,7 +93,7 @@ import { ApiService } from '../../services/api.service';
             ⚠️ {{ errorMessage }}
           </div>
 
-          <button id="register-submit-btn" type="submit" class="btn-register" [disabled]="isLoading">
+          <button id="register-submit-btn" type="submit" class="btn btn-primary w-full mt-6" [disabled]="isLoading">
             <span *ngIf="!isLoading">Create Account</span>
             <span *ngIf="isLoading" class="spinner">⏳ Creating...</span>
           </button>
