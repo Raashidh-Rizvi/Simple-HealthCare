@@ -8,13 +8,17 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="video-call-overlay" *ngIf="isActive">
+    <div #overlayContainer class="video-call-overlay" [class.is-fullscreen]="isFullscreen" *ngIf="isActive">
       <div class="video-container">
         <div class="header">
           <h3 class="text-white m-0">Video Consultation</h3>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="timer-badge" *ngIf="isConnected">⏱ {{ callDuration }}</span>
             <span class="status-badge" [class.connected]="isConnected">{{ isConnected ? 'Connected' : 'Waiting for peer...' }}</span>
+            <button class="fullscreen-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
+              <span *ngIf="!isFullscreen">⛶</span>
+              <span *ngIf="isFullscreen">✖</span>
+            </button>
           </div>
         </div>
         
@@ -28,14 +32,17 @@ import { Subscription } from 'rxjs';
         </div>
 
         <div class="controls">
-          <button class="control-btn" [class.muted]="!audioEnabled" (click)="toggleAudio()">
-            {{ audioEnabled ? '🎤' : '🔇' }}
+          <button class="control-btn" [class.muted]="!audioEnabled" (click)="toggleAudio()" [title]="audioEnabled ? 'Mute' : 'Unmute'">
+            <svg *ngIf="audioEnabled" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V3z"/><path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/></svg>
+            <svg *ngIf="!audioEnabled" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M6.717 3.55A3.001 3.001 0 0 1 11 3v5c0 .356-.06.697-.168 1.016l-1.04-1.04A2.001 2.001 0 0 0 8 3V1.693z"/><path d="M2.293 1.293a1 1 0 0 1 1.414 0l10 10a1 1 0 0 1-1.414 1.414L10.96 11.455A4.985 4.985 0 0 1 8 13c-2.76 0-5-2.24-5-5V7a1 1 0 0 1 2 0v1a3 3 0 0 0 2.238 2.898l-3.53-3.53a1 1 0 0 1 0-1.414zM4.693 5.307 2.293 2.907a1 1 0 0 1 1.414-1.414l2.4 2.4-1.414 1.414z"/></svg>
           </button>
-          <button class="control-btn" [class.muted]="!videoEnabled" (click)="toggleVideo()">
-            {{ videoEnabled ? '📷' : '🚫' }}
+          <button class="control-btn" [class.muted]="!videoEnabled" (click)="toggleVideo()" [title]="videoEnabled ? 'Turn off camera' : 'Turn on camera'">
+            <svg *ngIf="videoEnabled" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"/></svg>
+            <svg *ngIf="!videoEnabled" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M15.906 13.913a.5.5 0 0 1-.726.68L2.094 2.115a.5.5 0 0 1 .726-.68l13.086 12.478zM10.46 9.61 8.5 7.746v-.004l-1.956-1.86H2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h7.5c.348 0 .674-.088.96-.24z"/><path d="M11.5 5.5v1.238l-1.5-1.429A1 1 0 0 0 9.5 5H4.294L2.24 3.041A2.001 2.001 0 0 1 4 3h5.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382z"/></svg>
           </button>
-          <button class="control-btn end-call" (click)="endCall()">
-            ☎️ End
+          <button class="control-btn end-call" (click)="endCall()" title="End Consultation">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 0 0 .178.643l2.457 2.457a.678.678 0 0 0 .644.178l2.189-.547a1.745 1.745 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 0 1-7.01-4.42 18.634 18.634 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511zM10.5 4.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V5.207l-3.146 3.147a.5.5 0 0 1-.708-.708L13.793 4.5H11a.5.5 0 0 1-.5-.5z"/></svg>
+            <span style="margin-left: 6px;">End</span>
           </button>
         </div>
       </div>
@@ -62,11 +69,26 @@ import { Subscription } from 'rxjs';
       border: 1px solid rgba(255, 255, 255, 0.1);
       resize: both;
     }
+    .video-call-overlay.is-fullscreen,
+    .video-call-overlay:fullscreen {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none;
+      max-height: none;
+      bottom: 0;
+      right: 0;
+      border-radius: 0;
+      border: none;
+      resize: none;
+    }
     .video-container {
+      flex: 1;
       display: flex;
       flex-direction: column;
       height: 100%;
       width: 100%;
+      overflow: hidden;
+      min-height: 0;
     }
     .header {
       padding: 12px 16px;
@@ -98,6 +120,23 @@ import { Subscription } from 'rxjs';
       padding: 4px 8px;
       border-radius: 12px;
     }
+    .fullscreen-btn {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .fullscreen-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
     .streams-wrapper {
       flex: 1;
       position: relative;
@@ -105,6 +144,8 @@ import { Subscription } from 'rxjs';
       display: flex;
       justify-content: center;
       align-items: center;
+      min-height: 0;
+      overflow: hidden;
     }
     .remote-video {
       width: 100%;
@@ -119,13 +160,20 @@ import { Subscription } from 'rxjs';
       position: absolute;
       bottom: 16px;
       right: 16px;
-      width: 100px;
-      height: 140px;
+      width: 160px;
+      height: 120px;
       background-color: #000;
       border-radius: 8px;
       object-fit: cover;
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+    .video-call-overlay.is-fullscreen .local-video,
+    .video-call-overlay:fullscreen .local-video {
+      width: 240px;
+      height: 180px;
     }
     .waiting-message {
       display: flex;
@@ -195,11 +243,13 @@ export class VideoCallComponent implements OnInit, OnDestroy {
 
   @ViewChild('localVideo') localVideo!: ElementRef<HTMLVideoElement>;
   @ViewChild('remoteVideo') remoteVideo!: ElementRef<HTMLVideoElement>;
+  @ViewChild('overlayContainer') overlayContainer!: ElementRef;
 
   isActive: boolean = true;
   isConnected: boolean = false;
   audioEnabled: boolean = true;
   videoEnabled: boolean = true;
+  isFullscreen: boolean = false;
   
   callDuration: string = '00:00';
   private connectionStartTime: number | null = null;
@@ -256,6 +306,11 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   }
 
   private setupSignalRListeners() {
+    // Listen for fullscreen changes made via Esc key
+    document.addEventListener('fullscreenchange', () => {
+      this.isFullscreen = !!document.fullscreenElement;
+    });
+
     this.subscriptions.push(
       this.videoCallService.peerJoined$.subscribe(async (peerId) => {
         console.log('Peer joined:', peerId);
@@ -268,10 +323,8 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }),
       this.videoCallService.peerLeft$.subscribe((peerId) => {
         console.log('Peer left:', peerId);
-        this.isConnected = false;
-        if (this.remoteVideo?.nativeElement) {
-          this.remoteVideo.nativeElement.srcObject = null;
-        }
+        alert('The other person has ended the consultation.');
+        this.endCall();
       }),
       this.videoCallService.receiveOffer$.subscribe(async (data) => {
         console.log('Received offer');
@@ -412,6 +465,10 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     this.pendingCandidates = [];
     this.stopTimer();
     
+    if (this.isFullscreen) {
+      document.exitFullscreen().catch(e => console.error(e));
+    }
+    
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
     }
@@ -423,5 +480,15 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     
     this.subscriptions.forEach(s => s.unsubscribe());
     this.callEnded.emit();
+  }
+
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      this.overlayContainer.nativeElement.requestFullscreen().catch((err: any) => {
+        console.error(`Error attempting to enable fullscreen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
   }
 }
