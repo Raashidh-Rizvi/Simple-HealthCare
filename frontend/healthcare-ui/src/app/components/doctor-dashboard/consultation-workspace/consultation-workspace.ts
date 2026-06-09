@@ -5,15 +5,21 @@ import { SpeechRecognitionService } from '../../../services/speech-recognition.s
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { Subscription } from 'rxjs';
+import { VideoCallComponent } from '../../video-call/video-call.component';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-consultation-workspace',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective],
+  imports: [CommonModule, FormsModule, BaseChartDirective, VideoCallComponent],
   template: `
     <div class="consultation-workspace">
+      <!-- Video Call Overlay -->
+      <app-video-call *ngIf="isVideoCallActive" 
+                      [callId]="'appointment-' + patient.appointmentId" 
+                      (callEnded)="isVideoCallActive = false">
+      </app-video-call>
       <!-- Left Panel: Patient Summary -->
       <div class="panel">
         <div class="panel-header">
@@ -73,10 +79,15 @@ Chart.register(...registerables);
       <div class="panel">
         <div class="panel-header flex justify-between items-center">
           <h3>Clinical Notes</h3>
-          <button (click)="toggleSpeech()" class="btn btn-xs" [ngClass]="speechService.isListening ? 'btn-danger' : 'btn-outline'">
-            <span *ngIf="speechService.isListening">🛑 Stop</span>
-            <span *ngIf="!speechService.isListening">🎤 Dictate</span>
-          </button>
+          <div class="flex gap-2">
+            <button (click)="startVideoCall()" class="btn btn-xs btn-primary">
+              📹 Start Video Call
+            </button>
+            <button (click)="toggleSpeech()" class="btn btn-xs" [ngClass]="speechService.isListening ? 'btn-danger' : 'btn-outline'">
+              <span *ngIf="speechService.isListening">🛑 Stop</span>
+              <span *ngIf="!speechService.isListening">🎤 Dictate</span>
+            </button>
+          </div>
         </div>
         <div class="panel-content flex-col gap-4">
           <div *ngIf="speechService.isListening" class="text-xs text-warning mb-2 animate-pulse">
@@ -274,6 +285,7 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
 
   activeTab = 'vitals';
   activeField: 'chiefComplaint' | 'hpi' | 'assessment' | 'plan' = 'hpi';
+  isVideoCallActive: boolean = false;
   private speechSub: Subscription | null = null;
   
   // Chart Configuration
@@ -353,6 +365,10 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
     } else {
       this.speechService.start();
     }
+  }
+
+  startVideoCall() {
+    this.isVideoCallActive = true;
   }
 
   viewHistoryDetails(visit: any) {

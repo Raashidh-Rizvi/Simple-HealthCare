@@ -975,6 +975,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
         this.activePatient = {
           id: 'PT' + apt.patientId + '992',
           patientDbId: apt.patientId,
+          appointmentId: apt.id,
           name: apt.name,
           age: 45,
           gender: 'Male',

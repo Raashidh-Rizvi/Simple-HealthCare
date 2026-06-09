@@ -6,15 +6,22 @@ import { ApiService } from '../../services/api.service';
 import { VitalService, VitalResponseDto } from '../../services/vital.service';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
+import { VideoCallComponent } from '../video-call/video-call.component';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-patient-dashboard',
   standalone: true,
-  imports: [RouterModule, CommonModule, FormsModule, BaseChartDirective],
+  imports: [RouterModule, CommonModule, FormsModule, BaseChartDirective, VideoCallComponent],
   template: `
     <div class="dashboard-shell">
+      <!-- Video Call Overlay -->
+      <app-video-call *ngIf="isVideoCallActive" 
+                      [callId]="activeVideoCallId" 
+                      [isInitiator]="false" 
+                      (callEnded)="isVideoCallActive = false">
+      </app-video-call>
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
@@ -736,6 +743,9 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   sortBy = 'dateDesc';
   minDate = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 
+  isVideoCallActive: boolean = false;
+  activeVideoCallId: string = '';
+
   // Computed
   get upcomingAppointments(): any[] {
     return this.appointments.filter(a => a.status === 'Pending' || a.status === 'Confirmed');
@@ -895,9 +905,8 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   }
 
   joinVideoRoom(apt: any) {
-    alert('Connecting to the secure Video Consultation room... Please wait for the doctor to join.');
-    // Here you would navigate to the actual video consultation component or room URL
-    // e.g., this.router.navigate(['/patient/video-room', apt.encounterId]);
+    this.activeVideoCallId = 'appointment-' + apt.id;
+    this.isVideoCallActive = true;
   }
 
   openRescheduleModal(apt: any) {

@@ -22,6 +22,7 @@ builder.Services.AddDbContext<HealthcareDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<Healthcare.API.Services.IVitalService, Healthcare.API.Services.VitalService>();
+builder.Services.AddSignalR();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -51,9 +52,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins("http://localhost:4200")
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials();
         });
 });
 
@@ -70,6 +72,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<Healthcare.API.Hubs.VideoCallHub>("/hubs/videocall");
 
 // ─── Seed Database ────────────────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
