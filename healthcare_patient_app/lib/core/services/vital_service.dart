@@ -17,4 +17,18 @@ class VitalService {
       throw Exception('Failed to add vital');
     }
   }
+
+  Future<List<Vital>> getPatientVitals(int patientId) async {
+    try {
+      final response = await _apiClient.dio.get('${ApiConstants.baseUrl}/patients/$patientId/vitals');
+      if (response.statusCode == 200) {
+        List<dynamic> data = response.data;
+        return data.map((json) => Vital.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error getting vitals: $e');
+      return [];
+    }
+  }
 }

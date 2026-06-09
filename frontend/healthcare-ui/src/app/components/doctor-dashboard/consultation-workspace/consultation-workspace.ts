@@ -36,7 +36,10 @@ Chart.register(...registerables);
           </div>
           
           <div class="mb-6">
-            <h4 class="text-sm font-semibold mb-3 text-muted">Vitals (Last Recorded)</h4>
+            <h4 class="text-sm font-semibold mb-3 text-muted flex justify-between items-center">
+              Vitals (Last Recorded)
+              <button class="btn btn-outline btn-xs" (click)="isVitalsModalOpen = true">+ Add</button>
+            </h4>
             <div class="grid grid-cols-2 gap-2">
               <div class="vital-box">
                 <div class="vital-label">BP</div>
@@ -58,7 +61,15 @@ Chart.register(...registerables);
           </div>
           
           <div class="mb-4">
-            <h4 class="text-sm font-semibold mb-2 text-muted">Allergies</h4>
+            <h4 class="text-sm font-semibold mb-2 text-muted flex justify-between items-center">
+              Allergies
+              <button class="btn btn-outline btn-xs" (click)="addAllergy()" *ngIf="!isAddingAllergy">+ Add</button>
+            </h4>
+            <div *ngIf="isAddingAllergy" class="flex gap-2 mb-2">
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="newAllergy" placeholder="Add allergy...">
+              <button class="btn btn-primary btn-xs" (click)="saveAllergy()">Save</button>
+              <button class="btn btn-outline btn-xs" (click)="isAddingAllergy = false">Cancel</button>
+            </div>
             <div class="flex flex-wrap gap-2">
               <span *ngFor="let allergy of patient.allergies" class="badge badge-danger">{{ allergy }}</span>
               <span *ngIf="!patient.allergies?.length" class="text-sm text-muted">No known allergies</span>
@@ -66,7 +77,15 @@ Chart.register(...registerables);
           </div>
           
           <div>
-            <h4 class="text-sm font-semibold mb-2 text-muted">Chronic Conditions</h4>
+            <h4 class="text-sm font-semibold mb-2 text-muted flex justify-between items-center">
+              Chronic Conditions
+              <button class="btn btn-outline btn-xs" (click)="addCondition()" *ngIf="!isAddingCondition">+ Add</button>
+            </h4>
+            <div *ngIf="isAddingCondition" class="flex gap-2 mb-2">
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="newCondition" placeholder="Add condition...">
+              <button class="btn btn-primary btn-xs" (click)="saveCondition()">Save</button>
+              <button class="btn btn-outline btn-xs" (click)="isAddingCondition = false">Cancel</button>
+            </div>
             <div class="flex flex-wrap gap-2">
               <span *ngFor="let condition of patient.conditions" class="badge badge-warning">{{ condition }}</span>
               <span *ngIf="!patient.conditions?.length" class="text-sm text-muted">None recorded</span>
@@ -111,6 +130,7 @@ Chart.register(...registerables);
           </div>
           <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-700">
             <button class="btn btn-outline" (click)="onCancel.emit()">Cancel</button>
+            <button class="btn btn-primary" (click)="onSave.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs })">Save Draft</button>
             <button class="btn btn-secondary" (click)="onComplete.emit({ notes: notes, prescriptions: currentPrescriptions, orderedLabs: orderedLabs })">Complete Consultation</button>
           </div>
         </div>
@@ -123,6 +143,7 @@ Chart.register(...registerables);
           <div class="tab" [class.active]="activeTab === 'vitals'" (click)="activeTab = 'vitals'">Vitals</div>
           <div class="tab" [class.active]="activeTab === 'meds'" (click)="activeTab = 'meds'">Meds</div>
           <div class="tab" [class.active]="activeTab === 'labs'" (click)="activeTab = 'labs'">Labs</div>
+          <div class="tab" [class.active]="activeTab === 'imaging'" (click)="activeTab = 'imaging'">Imaging</div>
         </div>
         <div class="panel-content">
           <!-- History Tab -->
@@ -148,10 +169,10 @@ Chart.register(...registerables);
                    <span>Source: {{ v.source }}</span>
                  </div>
                  <div class="grid grid-cols-2 gap-2 text-sm">
-                   <div *ngIf="v.bloodPressureSystolic">BP: {{ v.bloodPressureSystolic }}/{{ v.bloodPressureDiastolic }}</div>
-                   <div *ngIf="v.heartRate">HR: {{ v.heartRate }} bpm</div>
-                   <div *ngIf="v.temperature">Temp: {{ v.temperature }} °C</div>
-                   <div *ngIf="v.weightKg">Weight: {{ v.weightKg }} kg</div>
+                   <div>BP: {{ v.bloodPressureSystolic ? v.bloodPressureSystolic + '/' + v.bloodPressureDiastolic : 'Not added' }}</div>
+                   <div>HR: {{ v.heartRate ? v.heartRate + ' bpm' : 'Not added' }}</div>
+                   <div>Temp: {{ v.temperature ? v.temperature + ' °C' : 'Not added' }}</div>
+                   <div>Weight: {{ v.weightKg ? v.weightKg + ' kg' : 'Not added' }}</div>
                  </div>
                  <button class="btn btn-outline btn-xs w-full mt-3" style="border-color: var(--accent); color: var(--accent);" (click)="verifyVital.emit(v.id)">Verify Readings</button>
                </div>
@@ -262,6 +283,139 @@ Chart.register(...registerables);
                    <button (click)="orderedLabs.splice(j, 1)" class="btn btn-danger btn-xs p-1">X</button>
                 </div>
              </div>
+           </div>
+          
+          <!-- Imaging Tab -->
+          <div *ngIf="activeTab === 'imaging'" class="flex-col gap-4">
+             <h4 class="text-sm font-semibold mt-2 mb-2 text-muted">Imaging Reports</h4>
+             <div class="grid grid-cols-2 gap-4">
+               <div class="inner-card p-3">
+                 <div class="flex justify-between items-start mb-2">
+                   <div>
+                     <h5 class="m-0 font-bold text-main">Chest X-Ray</h5>
+                     <span class="text-xs text-muted">2026-01-05</span>
+                   </div>
+                 </div>
+                 <p class="text-xs m-0 mt-1 mb-3 text-main">Clear, no abnormalities detected.</p>
+                 <div class="bg-gray-800 rounded p-2 text-center cursor-pointer hover:bg-gray-700 transition" style="height: 100px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2);">
+                   <span class="text-2xl">🖼️</span>
+                   <span class="ml-2 text-xs text-muted">View Image</span>
+                 </div>
+               </div>
+               <div class="inner-card p-3">
+                 <div class="flex justify-between items-start mb-2">
+                   <div>
+                     <h5 class="m-0 font-bold text-main">MRI - Brain</h5>
+                     <span class="text-xs text-muted">2025-08-12</span>
+                   </div>
+                 </div>
+                 <p class="text-xs m-0 mt-1 mb-3 text-main">No acute intracranial pathology.</p>
+                 <div class="bg-gray-800 rounded p-2 text-center cursor-pointer hover:bg-gray-700 transition" style="height: 100px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2);">
+                   <span class="text-2xl">🖼️</span>
+                   <span class="ml-2 text-xs text-muted">View Image</span>
+                 </div>
+               </div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Details Modal Overlay -->
+      <div *ngIf="isHistoryModalOpen && selectedHistoryVisit" class="modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;" (click)="isHistoryModalOpen = false">
+        <div class="inner-card p-4" style="background: #1e293b; width: 600px; max-width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid #334155; border-radius: 8px;" (click)="$event.stopPropagation()">
+          <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+            <div>
+              <h3 class="m-0 text-main">Visit Details - {{ selectedHistoryVisit.date }}</h3>
+              <p class="text-xs text-muted m-0 mt-1">Type: {{ selectedHistoryVisit.type }}</p>
+            </div>
+            <button class="btn btn-sm" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer;" (click)="isHistoryModalOpen = false">&times;</button>
+          </div>
+          
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold mb-2 text-primary">Reason for Visit</h4>
+            <div class="inner-card p-3 text-sm">
+              {{ selectedHistoryVisit.reason || 'No reason provided' }}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold mb-2 text-primary">Consultation Notes</h4>
+            <div class="inner-card p-3 text-sm" style="white-space: pre-wrap;">{{ selectedHistoryVisit.notes || 'No notes available' }}</div>
+          </div>
+
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold mb-2 text-primary">Diagnosis</h4>
+            <div class="inner-card p-3 text-sm">
+              {{ selectedHistoryVisit.diagnosis || 'No diagnosis recorded' }}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold mb-2 text-primary">Past Vital History</h4>
+            <div *ngIf="!selectedHistoryVisit.vitals || selectedHistoryVisit.vitals.length === 0" class="text-xs text-muted">No vitals recorded for this visit.</div>
+            <div *ngIf="selectedHistoryVisit.vitals && selectedHistoryVisit.vitals.length > 0" class="flex-col gap-2">
+              <div *ngFor="let vital of selectedHistoryVisit.vitals" class="inner-card p-3 text-sm">
+                 <div class="grid grid-cols-2 gap-2 text-muted">
+                    <div>BP: {{ vital.bloodPressureSystolic ? vital.bloodPressureSystolic + '/' + vital.bloodPressureDiastolic : 'Not added' }}</div>
+                    <div>HR: {{ vital.heartRate ? vital.heartRate + ' bpm' : 'Not added' }}</div>
+                    <div>Temp: {{ vital.temperature ? vital.temperature + ' °C' : 'Not added' }}</div>
+                    <div>Weight: {{ vital.weightKg ? vital.weightKg + ' kg' : 'Not added' }}</div>
+                 </div>
+                 <div class="text-xs mt-2 text-primary">Recorded at: {{ vital.recordedAt | date:'short' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end mt-4 pt-4 border-t border-gray-700">
+            <button class="btn btn-outline btn-sm" (click)="isHistoryModalOpen = false">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vitals Modal Overlay -->
+      <div *ngIf="isVitalsModalOpen" class="modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;" (click)="isVitalsModalOpen = false">
+        <div class="inner-card p-4" style="background: #1e293b; width: 400px; max-width: 90%; border: 1px solid #334155; border-radius: 8px;" (click)="$event.stopPropagation()">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="m-0 text-main">Record Clinical Vitals</h3>
+            <button class="btn btn-sm" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer;" (click)="isVitalsModalOpen = false">&times;</button>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Sys BP</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureSystolic" placeholder="120">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Dia BP</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.bloodPressureDiastolic" placeholder="80">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Heart Rate</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heartRate" placeholder="72">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Resp Rate</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.respiratoryRate" placeholder="16">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Temp (°C)</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.temperature" placeholder="37.0">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Weight (kg)</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.weightKg" placeholder="70.5">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Height (cm)</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.heightCm" placeholder="175">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">SpO2 (%)</label>
+              <input type="number" class="form-control form-control-sm" [(ngModel)]="newVitalForm.oxygenSaturation" placeholder="98">
+            </div>
+          </div>
+          <div class="flex gap-2 mt-4">
+            <button class="btn btn-outline btn-sm w-full" (click)="isVitalsModalOpen = false">Cancel</button>
+            <button class="btn btn-primary btn-sm w-full" (click)="submitClinicalVitalsFromModal()">Save</button>
           </div>
         </div>
       </div>
@@ -275,6 +429,7 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
   @Input() history: any[] = [];
   
   @Output() onComplete = new EventEmitter<any>();
+  @Output() onSave = new EventEmitter<any>();
   @Output() onCancel = new EventEmitter<void>();
   @Output() onSaveVitals = new EventEmitter<any>();
   @Output() verifyVital = new EventEmitter<number>();
@@ -282,6 +437,14 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
   @Input() patientSubmittedVitals: any[] = [];
   
   newVitalForm: any = {};
+  isVitalsModalOpen = false;
+  isHistoryModalOpen = false;
+  selectedHistoryVisit: any = null;
+
+  isAddingAllergy = false;
+  newAllergy = '';
+  isAddingCondition = false;
+  newCondition = '';
 
   activeTab = 'vitals';
   activeField: 'chiefComplaint' | 'hpi' | 'assessment' | 'plan' = 'hpi';
@@ -309,6 +472,23 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
     assessment: '',
     plan: ''
   };
+
+  @Input() set initialNotes(val: any) {
+    if (val) {
+      if (val.notesString) {
+        const ccMatch = val.notesString.match(/Chief Complaint:\s*(.*?)(?=\nHPI:|$)/s);
+        const hpiMatch = val.notesString.match(/HPI:\s*(.*?)(?=\nPlan:|$)/s);
+        const planMatch = val.notesString.match(/Plan:\s*(.*)/s);
+        
+        this.notes.chiefComplaint = ccMatch ? ccMatch[1].trim() : '';
+        this.notes.hpi = hpiMatch ? hpiMatch[1].trim() : '';
+        this.notes.plan = planMatch ? planMatch[1].trim() : '';
+      }
+      if (val.diagnosis) {
+        this.notes.assessment = val.diagnosis;
+      }
+    }
+  }
 
   currentPrescriptions: any[] = [];
   orderedLabs: string[] = [];
@@ -372,7 +552,38 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   viewHistoryDetails(visit: any) {
-    alert('Viewing details for visit on ' + visit.date);
+    this.selectedHistoryVisit = visit;
+    this.isHistoryModalOpen = true;
+  }
+
+  addAllergy() {
+    this.isAddingAllergy = true;
+  }
+
+  saveAllergy() {
+    if (this.newAllergy.trim()) {
+      if (!this.patient.allergies) {
+        this.patient.allergies = [];
+      }
+      this.patient.allergies.push(this.newAllergy.trim());
+      this.newAllergy = '';
+      this.isAddingAllergy = false;
+    }
+  }
+
+  addCondition() {
+    this.isAddingCondition = true;
+  }
+
+  saveCondition() {
+    if (this.newCondition.trim()) {
+      if (!this.patient.conditions) {
+        this.patient.conditions = [];
+      }
+      this.patient.conditions.push(this.newCondition.trim());
+      this.newCondition = '';
+      this.isAddingCondition = false;
+    }
   }
 
   addPrescription() {
@@ -391,6 +602,11 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
       isHomeReading: false
     });
     this.newVitalForm = {}; // clear form
+  }
+
+  submitClinicalVitalsFromModal() {
+    this.submitClinicalVitals();
+    this.isVitalsModalOpen = false;
   }
 
   @Input() set patientVitalsHistory(history: any[]) {

@@ -13,4 +13,5 @@ class ApiConstants {
   // Appointments
   static const String appointments = '$baseUrl/appointments';
   static const String myAppointments = '$baseUrl/appointments/me';
+  static const String availableSlots = '$baseUrl/appointments/available-slots';
 }

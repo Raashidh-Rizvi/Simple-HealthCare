@@ -1,202 +1,129 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../core/services/appointment_service.dart';
-import '../../shared/models/appointment_model.dart';
-import '../../main.dart';
 
-class MyAppointmentsScreen extends StatefulWidget {
-  const MyAppointmentsScreen({super.key});
+import '../../../main.dart';
+import '../../../main.dart';
+import '../../../core/services/appointment_service.dart';
+import '../../../shared/models/appointment_model.dart';
+import '../../../shared/models/vital_model.dart';
+import '../../../core/services/patient_service.dart';
+import '../../../core/services/vital_service.dart';
+
+class OverviewTab extends StatefulWidget {
+  const OverviewTab({super.key});
 
   @override
-  State<MyAppointmentsScreen> createState() => _MyAppointmentsScreenState();
+  State<OverviewTab> createState() => _OverviewTabState();
 }
 
-class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
+class _OverviewTabState extends State<OverviewTab> {
   final AppointmentService _appointmentService = AppointmentService();
+  final PatientService _patientService = PatientService();
+  final VitalService _vitalService = VitalService();
   List<Appointment> _appointments = [];
+  Vital? _latestVital;
+  String _patientName = 'Patient';
   bool _isLoading = true;
-  String _searchQuery = '';
-  String _filterStatus = '';
-
-  List<Appointment> get _filteredAppointments {
-    List<Appointment> result = _appointments.where((apt) => apt.appointmentDate.isAfter(DateTime.now())).toList();
-    
-    result.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
-    
-    if (_filterStatus.isNotEmpty) {
-      result = result.where((apt) => apt.status.toLowerCase() == _filterStatus.toLowerCase()).toList();
-    }
-
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      result = result.where((apt) {
-        final docName = apt.doctorName?.toLowerCase() ?? '';
-        final spec = apt.specialization?.toLowerCase() ?? '';
-        final status = apt.status.toLowerCase();
-        return docName.contains(query) || spec.contains(query) || status.contains(query);
-      }).toList();
-    }
-    return result;
-  }
-
-  List<Appointment> get _topAppointments {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-
-    final todayAppointments = _appointments.where((apt) => 
-      apt.appointmentDate.isAfter(today.subtract(const Duration(seconds: 1))) && 
-      apt.appointmentDate.isBefore(tomorrow)
-    ).toList();
-    
-    if (todayAppointments.isNotEmpty) {
-      todayAppointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
-      return todayAppointments;
-    }
-
-    final upcoming = _appointments.where((apt) => 
-      apt.appointmentDate.isAfter(now) && 
-      (apt.status.toLowerCase() == 'pending' || apt.status.toLowerCase() == 'confirmed' || apt.status.toLowerCase() == 'scheduled')
-    ).toList();
-    
-    upcoming.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
-    return upcoming.take(2).toList();
-  }
 
   @override
   void initState() {
     super.initState();
-    _loadAppointments();
+    _loadData();
   }
 
-  Future<void> _loadAppointments() async {
+  Future<void> _loadData() async {
     try {
+      Vital? latest;
+      final profile = await _patientService.getPatientProfile();
+      if (profile != null) {
+        _patientName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+        if (_patientName.isEmpty) _patientName = 'Patient';
+        
+        final vitals = await _vitalService.getPatientVitals(profile['id']);
+        if (vitals.isNotEmpty) {
+          latest = vitals.first;
+        }
+      }
+
       final appointments = await _appointmentService.getMyAppointments();
+
       setState(() {
         _appointments = appointments;
+        _latestVital = latest;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load appointments')));
+      print('Error loading overview data: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('My Appointments',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (_topAppointments.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Text(
-                          'Upcoming Appointments',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: PremiumColors.primary,
-                          ),
-                        ),
-                      ),
-                      ..._topAppointments.map((apt) => _buildNextAppointmentCard(apt)),
-                    ],
-                  ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', ''),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Pending', 'Pending'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Confirmed', 'Confirmed'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Completed', 'Completed'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Cancelled', 'Cancelled'),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search by doctor, specialty, or status...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: _filteredAppointments.isEmpty
-                      ? const Center(child: Text('No appointments found'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _filteredAppointments.length,
-                          itemBuilder: (context, index) {
-                            final apt = _filteredAppointments[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      elevation: 2,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text('Dr. ${apt.doctorName ?? 'Unknown'}',
-                            style:
-                                GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
-                                DateFormat('MMM dd, yyyy - hh:mm a')
-                                    .format(apt.appointmentDate),
-                                style: GoogleFonts.inter(
-                                    color: PremiumColors.primary)),
-                            const SizedBox(height: 4),
-                            Text('Status: ${apt.status.toUpperCase()}',
-                                style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                    color: (apt.status.toLowerCase() == 'completed' ||
-                                            apt.status.toLowerCase() == 'confirmed' ||
-                                            apt.status.toLowerCase() == 'scheduled' ||
-                                            apt.status.toLowerCase() == 'complete')
-                                        ? Colors.green
-                                        : Colors.orange)),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => _showAppointmentDetails(context, apt),
-                      ),
-                    );
-                  },
-                ),
-                    ),
-                  ],
-                ),
-    );
+  int get _upcomingCount => _appointments.where((a) => a.status.toLowerCase() == 'pending' || a.status.toLowerCase() == 'confirmed' || a.status.toLowerCase() == 'scheduled').length;
+  int get _completedCount => _appointments.where((a) => a.status.toLowerCase() == 'completed' || a.status.toLowerCase() == 'complete').length;
+
+  List<Appointment> get _upcomingAppointments {
+    final upcoming = _appointments.where((a) => a.status.toLowerCase() == 'pending' || a.status.toLowerCase() == 'confirmed' || a.status.toLowerCase() == 'scheduled').toList();
+    upcoming.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    return upcoming;
+  }
+
+  Appointment? get _todayOrTomorrowAppointment {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dayAfterTomorrow = today.add(const Duration(days: 2));
+
+    for (var apt in _upcomingAppointments) {
+      if (apt.appointmentDate.isAfter(today.subtract(const Duration(seconds: 1))) && 
+          apt.appointmentDate.isBefore(dayAfterTomorrow)) {
+        return apt;
+      }
+    }
+    return null;
+  }
+
+  List<Appointment> get _nextFewAppointments {
+    final todayOrTomorrow = _todayOrTomorrowAppointment;
+    final allUpcoming = _upcomingAppointments;
+    if (todayOrTomorrow != null) {
+      allUpcoming.removeWhere((a) => a.id == todayOrTomorrow.id);
+    }
+    return allUpcoming.take(3).toList();
+  }
+
+  String _getRiskLevel(Vital? vital) {
+    if (vital == null) return 'Normal';
+    
+    int sys = vital.bloodPressureSystolic ?? 0;
+    int dia = vital.bloodPressureDiastolic ?? 0;
+    int hr = int.tryParse(vital.heartRate ?? '0') ?? 0;
+    double temp = double.tryParse(vital.temperature ?? '0') ?? 0.0;
+    
+    if (sys >= 180 || dia >= 120) return 'Critical';
+    if (sys >= 140 || dia >= 90) return 'High';
+    if (sys > 0 && (sys < 90 || dia < 60)) return 'Low';
+    if (hr > 120 || (hr > 0 && hr < 50)) return 'Critical';
+    if (hr > 100 || (hr > 0 && hr < 60)) return 'Abnormal';
+    if (temp > 39.5 || (temp > 0 && temp < 35)) return 'Critical';
+    if (temp > 37.5) return 'High';
+    // O2 not in Vital model but let's assume if we had it:
+    return 'Normal';
+  }
+
+  Color _getRiskColor(String riskLevel) {
+    switch (riskLevel) {
+      case 'Normal':
+        return Colors.green;
+      case 'Elevated':
+      case 'Warning':
+        return Colors.orange;
+      case 'Critical':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   void _showAppointmentDetails(BuildContext context, Appointment apt) {
@@ -511,138 +438,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
   }
 
-  Widget _buildNextAppointmentCard(Appointment apt) {
-    return GestureDetector(
-      onTap: () => _showAppointmentDetails(context, apt),
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [PremiumColors.primary, PremiumColors.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: PremiumColors.primary.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Upcoming Appointment',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Dr. ${apt.doctorName ?? 'Unknown'}',
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-            ),
-          ),
-          if (apt.specialization != null)
-            Text(
-              apt.specialization!,
-              style: GoogleFonts.inter(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 14,
-              ),
-            ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Date',
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    DateFormat('MMM dd, yyyy').format(apt.appointmentDate),
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Time',
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    DateFormat('hh:mm a').format(apt.appointmentDate),
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String value) {
-    final isSelected = _filterStatus == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _filterStatus = value;
-        });
-      },
-      backgroundColor: Colors.transparent,
-      selectedColor: PremiumColors.primary.withValues(alpha: 0.15),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? PremiumColors.primary : Colors.grey.withValues(alpha: 0.2),
-        ),
-      ),
-      labelStyle: TextStyle(
-        color: isSelected ? PremiumColors.primary : Theme.of(context).textTheme.bodyMedium?.color,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
-
   Future<void> _cancelAppointment(BuildContext context, Appointment apt) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -657,29 +452,29 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     );
 
     if (confirm == true) {
-      Navigator.pop(context); // close modal
+      if (mounted) Navigator.pop(context); // close modal
       setState(() => _isLoading = true);
       try {
         await _appointmentService.cancelAppointment(apt.id);
-        await _loadAppointments();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment cancelled.')));
+        await _loadData();
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment cancelled.')));
       } catch (e) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to cancel appointment.')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to cancel appointment.')));
       }
     }
   }
 
   Future<void> _checkIn(BuildContext context, Appointment apt) async {
-    Navigator.pop(context);
+    if (mounted) Navigator.pop(context);
     setState(() => _isLoading = true);
     try {
       await _appointmentService.checkInEncounter(apt.id);
-      await _loadAppointments();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Checked in successfully.')));
+      await _loadData();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Checked in successfully.')));
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to check in.')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to check in.')));
     }
   }
 
@@ -722,5 +517,380 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       ],
     );
   }
-}
 
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome back,\n$_patientName',
+              style: GoogleFonts.outfit(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // KPI Grid
+            Row(
+              children: [
+                Expanded(
+                  child: _buildKpiCard(
+                    'Upcoming',
+                    '$_upcomingCount',
+                    Icons.event,
+                    PremiumColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildKpiCard(
+                    'Completed',
+                    '$_completedCount',
+                    Icons.check_circle_outline,
+                    PremiumColors.secondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildKpiCard(
+                    'Total',
+                    '${_appointments.length}',
+                    Icons.analytics_outlined,
+                    PremiumColors.accent,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            Text(
+              "Today's / Tomorrow's Appointment",
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildTodayTomorrowAppointmentCard(isDark),
+            
+            const SizedBox(height: 24),
+            Text(
+              'Next Appointments',
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildNextAppointmentsList(isDark),
+            
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Health Summary',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_latestVital != null && _getRiskLevel(_latestVital) != 'Normal')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getRiskColor(_getRiskLevel(_latestVital)).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _getRiskColor(_getRiskLevel(_latestVital)).withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      'Status: ${_getRiskLevel(_latestVital)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _getRiskColor(_getRiskLevel(_latestVital)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildHealthSummaryCard(isDark),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKpiCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border(top: BorderSide(color: color, width: 4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayTomorrowAppointmentCard(bool isDark) {
+    if (_todayOrTomorrowAppointment == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            'No appointments scheduled for today or tomorrow.',
+            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: () => _showAppointmentDetails(context, _todayOrTomorrowAppointment!),
+      child: _buildAppointmentCard(_todayOrTomorrowAppointment!, isDark),
+    );
+  }
+
+  Widget _buildNextAppointmentsList(bool isDark) {
+    final nextAppts = _nextFewAppointments;
+    if (nextAppts.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            'No further upcoming appointments.',
+            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: nextAppts.map((apt) => Padding(
+        padding: const EdgeInsets.only(bottom: 12.0),
+        child: GestureDetector(
+          onTap: () => _showAppointmentDetails(context, apt),
+          child: _buildAppointmentCard(apt, isDark),
+        ),
+      )).toList(),
+    );
+  }
+
+  Widget _buildAppointmentCard(Appointment apt, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: PremiumColors.primary.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: PremiumColors.primary.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Dr. ${apt.doctorName}',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: PremiumColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  apt.status.toUpperCase(),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: PremiumColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${apt.specialization ?? "Specialist"} • Consultation',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: PremiumColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 14, color: PremiumColors.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormat('MMM dd, yyyy').format(apt.appointmentDate),
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 14, color: PremiumColors.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormat('hh:mm a').format(apt.appointmentDate), // using date as start time roughly
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthSummaryCard(bool isDark) {
+    if (_latestVital == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            'No health data available.',
+            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+        ),
+      );
+    }
+
+    final v = _latestVital!;
+    final dateStr = v.recordedAt != null ? DateFormat('MMM dd').format(DateTime.parse(v.recordedAt!)) : 'Unknown';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          _buildVitalRow('🩸', 'Blood Pressure', '${v.bloodPressureSystolic ?? "--"}/${v.bloodPressureDiastolic ?? "--"}', 'Last reading: $dateStr'),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildVitalRow('❤️', 'Heart Rate', '${v.heartRate ?? "--"} bpm', 'Last reading: $dateStr'),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildVitalRow('🌡️', 'Temperature', '${v.temperature ?? "--"}', 'Last reading: $dateStr'),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildVitalRow('⚖️', 'Weight', '${v.weight ?? "--"}', 'Last reading: $dateStr'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalRow(String emoji, String title, String value, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

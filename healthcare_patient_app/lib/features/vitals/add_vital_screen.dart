@@ -56,9 +56,6 @@ class _AddVitalScreenState extends State<AddVitalScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Add Vitals', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

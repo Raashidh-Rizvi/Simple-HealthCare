@@ -104,5 +104,58 @@ namespace Healthcare.API.Controllers
             public string? Gender { get; set; }
             public string? BloodGroup { get; set; }
         }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchPatients([FromQuery] string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest(new { message = "Search query is required." });
+
+            var q = query.ToLower();
+            var patients = await _context.Patients
+                .Include(p => p.User)
+                .Where(p => (p.User != null && p.User.FirstName.ToLower().Contains(q)) || 
+                            (p.User != null && p.User.LastName.ToLower().Contains(q)) || 
+                            p.Id.ToString() == q ||
+                            (p.PhoneNumber != null && p.PhoneNumber.Contains(q)))
+                .Select(p => new {
+                    p.Id,
+                    FirstName = p.User != null ? p.User.FirstName : "",
+                    LastName = p.User != null ? p.User.LastName : "",
+                    Name = p.User != null ? p.User.FirstName + " " + p.User.LastName : "Unknown",
+                    Age = DateTime.Now.Year - p.DateOfBirth.Year,
+                    Gender = p.Gender ?? "Unknown",
+                    Phone = p.PhoneNumber ?? (p.User != null ? p.User.Phone : ""),
+                    p.UserId
+                })
+                .Take(20)
+                .ToListAsync();
+
+            return Ok(patients);
+        }
+
+        [HttpGet("all")]
+        [Authorize(Roles = "Admin,admin,Doctor,doctor,Nurse,nurse,Receptionist,receptionist")]
+        public async Task<IActionResult> GetAllPatients()
+        {
+            var patients = await _context.Patients
+                .Include(p => p.User)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.DateOfBirth,
+                    p.PhoneNumber,
+                    p.Gender,
+                    p.BloodGroup,
+                    FirstName = p.User != null ? p.User.FirstName : "Unknown",
+                    LastName = p.User != null ? p.User.LastName : "Unknown",
+                    Email = p.User != null ? p.User.Email : "Unknown",
+                    UserStatus = p.User != null ? p.User.Status : "Unknown",
+                    AppointmentCount = p.Appointments.Count
+                })
+                .ToListAsync();
+
+            return Ok(patients);
+        }
     }
 }

@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'features/auth/auth_provider.dart';
 import 'features/auth/login_screen.dart';
-import 'features/doctors/doctors_list_screen.dart';
-import 'features/appointments/my_appointments_screen.dart';
-import 'features/vitals/vital_history_screen.dart';
+import 'features/dashboard/patient_dashboard_screen.dart';
 
 void main() {
   runApp(
@@ -37,6 +35,10 @@ class PremiumColors {
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color textMainLight = Color(0xFF0F172A); // Slate 900
   static const Color textMutedLight = Color(0xFF475569); // Slate 600
+
+  // Aliases for compatibility
+  static const Color textDark = textMainLight;
+  static const Color textLight = textMainDark;
 }
 
 class ThemeProvider with ChangeNotifier {
@@ -129,7 +131,7 @@ class HealthcarePatientApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: \'Healthcare Patient Portal\',
+          title: 'Healthcare Patient Portal',
           debugShowCheckedModeBanner: false,
           theme: PremiumTheme.lightTheme,
           darkTheme: PremiumTheme.darkTheme,
@@ -172,89 +174,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (_isChecking) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return _isLoggedIn ? const MainScreen() : const LoginScreen();
-  }
-}
-
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const DoctorsListScreen(), // Placeholder for Home/Doctors
-    const MyAppointmentsScreen(),
-    const VitalHistoryScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          \'Patient Portal\',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: PremiumColors.primary),
-            tooltip: \'Toggle Theme\',
-            onPressed: () {
-              themeProvider.toggleTheme();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: PremiumColors.danger),
-            tooltip: \'Sign Out\',
-            onPressed: () async {
-              await Provider.of<AuthProvider>(context, listen: false).logout();
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AuthWrapper()),
-                );
-              }
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: \'Doctors\',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: \'Appointments\',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.monitor_heart_outlined),
-            selectedIcon: Icon(Icons.monitor_heart),
-            label: \'Vitals\',
-          ),
-        ],
-      ),
-    );
+    return _isLoggedIn ? const PatientDashboardScreen() : const LoginScreen();
   }
 }

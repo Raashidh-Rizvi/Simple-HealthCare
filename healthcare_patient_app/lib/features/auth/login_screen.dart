@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'auth_provider.dart';
 import '../../shared/widgets/custom_text_field.dart';
 import '../../shared/widgets/primary_button.dart';
-import '../../main.dart'; // for AppColors
+import '../dashboard/patient_dashboard_screen.dart'; // Route destination
+import '../../main.dart'; // for PremiumColors
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (errorMsg == null && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainScreen()),
+        MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
       );
     } else if (mounted) {
       if (errorMsg == 'Only patients are allowed to access this app.') {
@@ -49,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('OK', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                child: Text('OK', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: PremiumColors.primary)),
               ),
             ],
           ),
@@ -72,12 +73,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE3F2FD), Color(0xFFF3F4F6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
         ),
         child: SafeArea(
           child: Center(
@@ -86,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Container(
                 padding: const EdgeInsets.all(32.0),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
@@ -103,13 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
+                        color: PremiumColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.favorite_rounded,
                         size: 64,
-                        color: AppColors.primary,
+                        color: PremiumColors.primary,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -119,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -128,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: 16,
-                        color: AppColors.textLight,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(height: 40),

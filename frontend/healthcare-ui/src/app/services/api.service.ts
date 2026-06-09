@@ -38,6 +38,15 @@ export class ApiService {
     return this.http.put(`${this.apiUrl}/patients/me`, profile, { headers: this.getHeaders() });
   }
 
+  searchPatients(query: string): Observable<any> {
+    const params = new HttpParams().set('query', query);
+    return this.http.get(`${this.apiUrl}/patients/search`, { headers: this.getHeaders(), params });
+  }
+
+  getAllPatients(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/patients/all`, { headers: this.getHeaders() });
+  }
+
   // ─── Doctor Profile ─────────────────────────────────────────────────────────
 
   getDoctorProfile(): Observable<any> {
@@ -187,6 +196,10 @@ export class ApiService {
 
   startConsultation(encounterId: number): Observable<any> {
     return this.http.put(`${this.apiUrl}/encounters/${encounterId}/consultation/start`, {}, { headers: this.getHeaders() });
+  }
+
+  saveConsultation(encounterId: number, details: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/encounters/${encounterId}/consultation/save`, details, { headers: this.getHeaders() });
   }
 
   completeConsultation(encounterId: number, details: any): Observable<any> {

@@ -171,11 +171,11 @@ interface Slot {
           <div class="form-group mt-4">
             <label class="form-label">Appointment Type</label>
             <div class="flex gap-4 mt-2">
-              <label class="cursor-pointer flex items-center gap-2">
+              <label class="cursor-pointer flex items-center gap-2" *ngIf="!selectedDoctor?.consultationType || selectedDoctor?.consultationType === 'Both' || selectedDoctor?.consultationType === 'Hospital'">
                 <input type="radio" name="appointmentType" value="Hospital Visit" [(ngModel)]="type">
                 <span>🏥 Hospital Visit</span>
               </label>
-              <label class="cursor-pointer flex items-center gap-2">
+              <label class="cursor-pointer flex items-center gap-2" *ngIf="selectedDoctor?.consultationType === 'Both' || selectedDoctor?.consultationType === 'Video'">
                 <input type="radio" name="appointmentType" value="Video Consultation" [(ngModel)]="type">
                 <span>💻 Video Consultation</span>
               </label>
@@ -488,6 +488,13 @@ export class AppointmentBookingComponent implements OnInit {
 
     if (this.currentStep === 2) {
       this.loadSlots();
+    }
+    if (this.currentStep === 3) {
+      if (this.selectedDoctor?.consultationType === 'Video') {
+        this.type = 'Video Consultation';
+      } else {
+        this.type = 'Hospital Visit';
+      }
     }
     this.currentStep++;
   }

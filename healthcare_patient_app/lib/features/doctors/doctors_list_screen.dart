@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/doctor_service.dart';
 import '../../shared/models/doctor_model.dart';
-import '../../main.dart'; // for AppColors
+import '../../main.dart'; // for PremiumColors
 import 'doctor_details_screen.dart';
 
 class DoctorsListScreen extends StatefulWidget {
@@ -46,9 +46,6 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
       appBar: AppBar(
         title: Text('Find a Doctor',
             style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -65,12 +62,12 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      backgroundColor: PremiumColors.primary.withValues(alpha: 0.1),
                       radius: 30,
                       child: Text(
                         doctor.firstName[0] + doctor.lastName[0],
                         style: const TextStyle(
-                            color: AppColors.primary,
+                            color: PremiumColors.primary,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -78,7 +75,7 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
                         style: GoogleFonts.inter(
                             fontWeight: FontWeight.bold, fontSize: 18)),
                     subtitle: Text(doctor.specialization,
-                        style: GoogleFonts.inter(color: AppColors.textLight)),
+                        style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.push(

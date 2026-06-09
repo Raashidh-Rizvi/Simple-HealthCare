@@ -22,6 +22,7 @@ namespace Healthcare.API.Models
         public string? LicenseNumber { get; set; }
         public int ExperienceYears { get; set; }
         public decimal ConsultationFee { get; set; }
+        public string ConsultationType { get; set; } = "Both"; // "Video", "Hospital", "Both"
         public string Status { get; set; } = "Active"; // Active | Inactive
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
         public ICollection<CareProvider> CareProviders { get; set; } = new List<CareProvider>();

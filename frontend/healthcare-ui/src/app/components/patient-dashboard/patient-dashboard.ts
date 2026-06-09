@@ -23,7 +23,7 @@ Chart.register(...registerables);
                       (callEnded)="isVideoCallActive = false">
       </app-video-call>
       <!-- Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
         <div class="sidebar-header">
           <div class="sidebar-logo">
             <span class="text-primary">✚</span> HealthPro
@@ -52,7 +52,8 @@ Chart.register(...registerables);
       <main class="main-area">
         <!-- Top Bar -->
         <header class="top-bar">
-          <div class="top-bar-left">
+          <div class="top-bar-left flex items-center gap-3">
+            <button class="btn-icon" (click)="toggleSidebar()" style="background:none; border:none; color:var(--text-main); font-size:1.5rem; cursor:pointer; padding:0; margin-right:10px;">☰</button>
             <h2 class="m-0 font-bold">{{ getNavTitle() }}</h2>
           </div>
           <div class="top-bar-right">
@@ -95,29 +96,57 @@ Chart.register(...registerables);
 
           <!-- Recent Activity & Quick Actions -->
           <div class="content-grid">
-            <div class="glass-card">
-              <h3 class="m-0 mb-4 text-primary">Your Next Appointment</h3>
-              <div *ngIf="upcomingAppointments.length === 0" class="text-muted text-sm p-4">
-                You have no upcoming appointments.
-              </div>
-              <div *ngIf="upcomingAppointments.length > 0" class="inner-card cursor-pointer hover-lift" (click)="viewAppointmentDetails(upcomingAppointments[0])">
-                <div class="flex justify-between items-start mb-2">
-                  <strong class="text-main" style="font-size: 1.1rem;">Dr. {{ upcomingAppointments[0].doctorName }}</strong>
-                  <span class="badge" [ngClass]="getStatusBadgeClass(upcomingAppointments[0].status)">{{ upcomingAppointments[0].status }}</span>
+            <div class="flex-col gap-4">
+              <div class="glass-card">
+                <h3 class="m-0 mb-4 text-primary">Today's / Tomorrow's Appointment</h3>
+                <div *ngIf="!todayOrTomorrowAppointment" class="text-muted text-sm p-4 text-center">
+                  No appointments scheduled for today or tomorrow.
                 </div>
-                <p class="text-sm text-primary mb-3">{{ upcomingAppointments[0].specialization }} • {{ upcomingAppointments[0].type }}</p>
-                <div class="flex justify-between text-sm text-muted">
-                  <span>📅 {{ upcomingAppointments[0].appointmentDate | date:'fullDate' }}</span>
-                  <span>⏰ {{ upcomingAppointments[0].startTime }} – {{ upcomingAppointments[0].endTime }}</span>
+                <div *ngIf="todayOrTomorrowAppointment" class="inner-card cursor-pointer hover-lift" (click)="viewAppointmentDetails(todayOrTomorrowAppointment)">
+                  <div class="flex justify-between items-start mb-2">
+                    <strong class="text-main" style="font-size: 1.1rem;">Dr. {{ todayOrTomorrowAppointment.doctorName }}</strong>
+                    <span class="badge" [ngClass]="getStatusBadgeClass(todayOrTomorrowAppointment.status)">{{ todayOrTomorrowAppointment.status }}</span>
+                  </div>
+                  <p class="text-sm text-primary mb-3">{{ todayOrTomorrowAppointment.specialization }} • {{ todayOrTomorrowAppointment.type }}</p>
+                  <div class="flex justify-between text-sm text-muted">
+                    <span>📅 {{ todayOrTomorrowAppointment.appointmentDate | date:'fullDate' }}</span>
+                    <span>⏰ {{ todayOrTomorrowAppointment.startTime }} – {{ todayOrTomorrowAppointment.endTime }}</span>
+                  </div>
                 </div>
               </div>
-              <button class="btn btn-outline btn-sm mt-4 w-full" (click)="activeNav = 'appointments'">View All Appointments</button>
+
+              <div class="glass-card">
+                <h3 class="m-0 mb-4 text-primary">Next Appointments</h3>
+                <div *ngIf="nextFewAppointments.length === 0" class="text-muted text-sm p-4 text-center">
+                  No further upcoming appointments.
+                </div>
+                <div class="flex-col gap-3" *ngIf="nextFewAppointments.length > 0">
+                  <div *ngFor="let apt of nextFewAppointments" class="inner-card cursor-pointer hover-lift p-3" (click)="viewAppointmentDetails(apt)">
+                    <div class="flex justify-between items-start mb-2">
+                      <strong class="text-main">Dr. {{ apt.doctorName }}</strong>
+                      <span class="badge" [ngClass]="getStatusBadgeClass(apt.status)">{{ apt.status }}</span>
+                    </div>
+                    <p class="text-sm text-primary mb-2">{{ apt.specialization }} • {{ apt.type }}</p>
+                    <div class="flex justify-between text-xs text-muted">
+                      <span>📅 {{ apt.appointmentDate | date:'mediumDate' }}</span>
+                      <span>⏰ {{ apt.startTime }} – {{ apt.endTime }}</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn btn-outline btn-sm mt-4 w-full" (click)="activeNav = 'appointments'">View All Appointments</button>
+              </div>
             </div>
 
             <div class="glass-card">
-              <h3 class="m-0 mb-4 text-accent">Health Summary</h3>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="m-0 text-accent">Health Summary</h3>
+                <span *ngIf="vitalsHistory.length > 0 && getRiskLevel(vitalsHistory[0]) !== 'Normal'" 
+                      class="badge" [ngClass]="getRiskBadgeClass(vitalsHistory[0])">
+                  Status: {{ getRiskLevel(vitalsHistory[0]) }}
+                </span>
+              </div>
               <div class="flex-col gap-3" *ngIf="vitalsHistory.length > 0">
-                <div class="inner-card flex justify-between items-center p-3" *ngIf="vitalsHistory[0].bloodPressureSystolic">
+                <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">🩸</span>
                     <div>
@@ -125,9 +154,39 @@ Chart.register(...registerables);
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
-                  <strong class="text-lg">{{ vitalsHistory[0].bloodPressureSystolic }}/{{ vitalsHistory[0].bloodPressureDiastolic }}</strong>
+                  <strong class="text-lg">{{ vitalsHistory[0].bloodPressureSystolic ? vitalsHistory[0].bloodPressureSystolic + '/' + vitalsHistory[0].bloodPressureDiastolic : 'Not added' }}</strong>
                 </div>
-                <div class="inner-card flex justify-between items-center p-3" *ngIf="vitalsHistory[0].weightKg">
+                <div class="inner-card flex justify-between items-center p-3">
+                  <div class="flex items-center gap-3">
+                    <span class="text-2xl">❤️</span>
+                    <div>
+                      <strong class="block text-main">Heart Rate</strong>
+                      <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
+                    </div>
+                  </div>
+                  <strong class="text-lg">{{ vitalsHistory[0].heartRate ? vitalsHistory[0].heartRate + ' bpm' : 'Not added' }}</strong>
+                </div>
+                <div class="inner-card flex justify-between items-center p-3">
+                  <div class="flex items-center gap-3">
+                    <span class="text-2xl">🌡️</span>
+                    <div>
+                      <strong class="block text-main">Temperature</strong>
+                      <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
+                    </div>
+                  </div>
+                  <strong class="text-lg">{{ vitalsHistory[0].temperature ? vitalsHistory[0].temperature + ' °C' : 'Not added' }}</strong>
+                </div>
+                <div class="inner-card flex justify-between items-center p-3">
+                  <div class="flex items-center gap-3">
+                    <span class="text-2xl">🫁</span>
+                    <div>
+                      <strong class="block text-main">SpO2</strong>
+                      <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
+                    </div>
+                  </div>
+                  <strong class="text-lg">{{ vitalsHistory[0].oxygenSaturation ? vitalsHistory[0].oxygenSaturation + '%' : 'Not added' }}</strong>
+                </div>
+                <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">⚖️</span>
                     <div>
@@ -135,7 +194,7 @@ Chart.register(...registerables);
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
-                  <strong class="text-lg">{{ vitalsHistory[0].weightKg }} kg</strong>
+                  <strong class="text-lg">{{ vitalsHistory[0].weightKg ? vitalsHistory[0].weightKg + ' kg' : 'Not added' }}</strong>
                 </div>
               </div>
               <div *ngIf="vitalsHistory.length === 0" class="text-muted text-sm py-4">
@@ -169,10 +228,10 @@ Chart.register(...registerables);
               <div class="form-control flex items-center gap-2" style="width: auto; padding: 0 0.5rem;">
                 <span class="text-muted text-sm">Sort:</span>
                 <select style="border: none; background: transparent; outline: none; cursor: pointer; color: inherit; padding-right: 0.5rem;" [(ngModel)]="sortBy">
-                  <option value="dateDesc">Newest First</option>
-                  <option value="dateAsc">Oldest First</option>
-                  <option value="doctorAsc">Doctor (A-Z)</option>
-                  <option value="doctorDesc">Doctor (Z-A)</option>
+                  <option value="dateDesc" style="background-color: var(--option-bg); color: var(--option-text);">Newest First</option>
+                  <option value="dateAsc" style="background-color: var(--option-bg); color: var(--option-text);">Oldest First</option>
+                  <option value="doctorAsc" style="background-color: var(--option-bg); color: var(--option-text);">Doctor (A-Z)</option>
+                  <option value="doctorDesc" style="background-color: var(--option-bg); color: var(--option-text);">Doctor (Z-A)</option>
                 </select>
               </div>
               <input type="text" class="form-control" style="max-width: 250px;" placeholder="Search appointments..." [(ngModel)]="searchTerm">
@@ -245,89 +304,156 @@ Chart.register(...registerables);
             <h3 class="font-bold m-0 text-main">Health Records & Vitals</h3>
           </div>
 
-          <!-- Vitals Chart Card -->
-          <div class="glass-card mb-6">
-            <h4 class="text-sm font-semibold mb-4 text-primary">Your Vitals Trends</h4>
-            <div *ngIf="vitalsHistory.length === 0" class="text-center py-8 text-muted">
-               <span style="font-size: 2rem;">📈</span>
-               <p class="mt-2 text-sm">No vitals recorded yet. Submit your first reading below.</p>
+          <!-- Tabs -->
+          <div class="flex gap-4 border-b border-gray-700 mb-6">
+            <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'vitals'" [class.text-primary]="activeRecordTab === 'vitals'" [class.border-transparent]="activeRecordTab !== 'vitals'" [class.text-muted]="activeRecordTab !== 'vitals'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'vitals'">Vitals</button>
+            <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'history'" [class.text-primary]="activeRecordTab === 'history'" [class.border-transparent]="activeRecordTab !== 'history'" [class.text-muted]="activeRecordTab !== 'history'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'history'">Medical History</button>
+            <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'labs'" [class.text-primary]="activeRecordTab === 'labs'" [class.border-transparent]="activeRecordTab !== 'labs'" [class.text-muted]="activeRecordTab !== 'labs'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'labs'">Lab Reports</button>
+            <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'imaging'" [class.text-primary]="activeRecordTab === 'imaging'" [class.border-transparent]="activeRecordTab !== 'imaging'" [class.text-muted]="activeRecordTab !== 'imaging'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'imaging'">Imaging</button>
+          </div>
+
+          <!-- Vitals Tab -->
+          <div *ngIf="activeRecordTab === 'vitals'">
+            <!-- Vitals Chart Card -->
+            <div class="glass-card mb-6">
+              <h4 class="text-sm font-semibold mb-4 text-primary">Your Vitals Trends</h4>
+              <div *ngIf="vitalsHistory.length === 0" class="text-center py-8 text-muted">
+                 <span style="font-size: 2rem;">📈</span>
+                 <p class="mt-2 text-sm">No vitals recorded yet. Submit your first reading below.</p>
+              </div>
+              <div *ngIf="vitalsHistory.length > 0" style="height: 300px;">
+                <canvas baseChart
+                  [data]="lineChartData"
+                  [options]="lineChartOptions"
+                  [type]="lineChartType">
+                </canvas>
+              </div>
             </div>
-            <div *ngIf="vitalsHistory.length > 0" style="height: 300px;">
-              <canvas baseChart
-                [data]="lineChartData"
-                [options]="lineChartOptions"
-                [type]="lineChartType">
-              </canvas>
+
+            <div class="grid grid-cols-2 gap-6">
+              <!-- Submit Vitals Form -->
+              <div class="glass-card">
+                <h4 class="text-sm font-semibold mb-4 text-accent">Submit Home Reading</h4>
+                <form (ngSubmit)="submitHomeVitals()" class="flex-col gap-3">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group mb-0">
+                      <label class="form-label text-xs">Systolic BP</label>
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureSystolic" name="sys" placeholder="120">
+                    </div>
+                    <div class="form-group mb-0">
+                      <label class="form-label text-xs">Diastolic BP</label>
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureDiastolic" name="dia" placeholder="80">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group mb-0">
+                      <label class="form-label text-xs">Heart Rate (bpm)</label>
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.heartRate" name="hr" placeholder="72">
+                    </div>
+                    <div class="form-group mb-0">
+                      <label class="form-label text-xs">Temperature (°C)</label>
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.temperature" name="temp" placeholder="37">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group mb-0">
+                      <label class="form-label text-xs">Weight (kg)</label>
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.weightKg" name="weight" placeholder="70.5">
+                    </div>
+                    <div class="form-group mb-0">
+                      <label class="form-label text-xs">SpO2 (%)</label>
+                      <input type="number" class="form-control" [(ngModel)]="homeVitalForm.oxygenSaturation" name="spo2" placeholder="98">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary mt-3" [disabled]="submittingVitals">
+                     {{ submittingVitals ? 'Submitting...' : 'Submit Reading' }}
+                  </button>
+                </form>
+              </div>
+
+              <!-- Vitals History List -->
+              <div class="glass-card flex-col" style="max-height: 400px; overflow-y: auto;">
+                <h4 class="text-sm font-semibold mb-4 text-primary">Recent Readings</h4>
+                <div *ngIf="vitalsHistory.length === 0" class="text-center text-muted text-xs py-4">
+                  No history available.
+                </div>
+                <div *ngFor="let vital of vitalsHistory" class="inner-card mb-3 p-3 cursor-pointer hover-lift" [style.border-left]="getRiskBorder(vital)" (click)="viewVitalDetails(vital)">
+                  <div class="flex justify-between text-xs text-muted mb-2">
+                    <span>{{ vital.recordedAt | date:'medium' }}</span>
+                    <div class="flex gap-2 items-center">
+                      <span class="badge" [ngClass]="getRiskBadgeClass(vital)" *ngIf="getRiskLevel(vital) !== 'Normal'">
+                        {{ getRiskLevel(vital) }}
+                      </span>
+                      <span class="badge" [ngClass]="vital.source === 'Clinical' ? 'badge-primary' : 'badge-warning'">
+                        {{ vital.source }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div>BP: {{ vital.bloodPressureSystolic ? vital.bloodPressureSystolic + '/' + vital.bloodPressureDiastolic : 'Not added' }}</div>
+                    <div>HR: {{ vital.heartRate ? vital.heartRate + ' bpm' : 'Not added' }}</div>
+                    <div>Temp: {{ vital.temperature ? vital.temperature + ' °C' : 'Not added' }}</div>
+                    <div>Weight: {{ vital.weightKg ? vital.weightKg + ' kg' : 'Not added' }}</div>
+                    <div>SpO2: {{ vital.oxygenSaturation ? vital.oxygenSaturation + '%' : 'Not added' }}</div>
+                  </div>
+                  <div *ngIf="vital.status === 'Verified'" class="text-xs text-success mt-2">✓ Verified by Doctor</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-6">
-            <!-- Submit Vitals Form -->
+          <!-- Medical History Tab -->
+          <div *ngIf="activeRecordTab === 'history'" class="flex-col gap-4">
             <div class="glass-card">
-              <h4 class="text-sm font-semibold mb-4 text-accent">Submit Home Reading</h4>
-              <form (ngSubmit)="submitHomeVitals()" class="flex-col gap-3">
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="form-group mb-0">
-                    <label class="form-label text-xs">Systolic BP</label>
-                    <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureSystolic" name="sys" placeholder="120">
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label text-xs">Diastolic BP</label>
-                    <input type="number" class="form-control" [(ngModel)]="homeVitalForm.bloodPressureDiastolic" name="dia" placeholder="80">
+              <h4 class="text-sm font-semibold mb-4 text-primary">Complete Medical History</h4>
+              <div *ngIf="medicalHistory.length === 0" class="text-center py-4 text-muted text-sm">No medical history available.</div>
+              <div *ngFor="let item of medicalHistory" class="inner-card p-4 mb-4">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <h5 class="m-0 font-bold text-main">{{ item.condition }}</h5>
+                    <span class="text-xs text-muted">{{ item.date | date:'mediumDate' }} • Diagnosed by {{ item.doctor }}</span>
                   </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="form-group mb-0">
-                    <label class="form-label text-xs">Heart Rate (bpm)</label>
-                    <input type="number" class="form-control" [(ngModel)]="homeVitalForm.heartRate" name="hr" placeholder="72">
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label text-xs">Temperature (°C)</label>
-                    <input type="number" class="form-control" [(ngModel)]="homeVitalForm.temperature" name="temp" placeholder="37">
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="form-group mb-0">
-                    <label class="form-label text-xs">Weight (kg)</label>
-                    <input type="number" class="form-control" [(ngModel)]="homeVitalForm.weightKg" name="weight" placeholder="70.5">
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label text-xs">SpO2 (%)</label>
-                    <input type="number" class="form-control" [(ngModel)]="homeVitalForm.oxygenSaturation" name="spo2" placeholder="98">
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary mt-3" [disabled]="submittingVitals">
-                   {{ submittingVitals ? 'Submitting...' : 'Submit Reading' }}
-                </button>
-              </form>
-            </div>
-
-            <!-- Vitals History List -->
-            <div class="glass-card flex-col" style="max-height: 400px; overflow-y: auto;">
-              <h4 class="text-sm font-semibold mb-4 text-primary">Recent Readings</h4>
-              <div *ngIf="vitalsHistory.length === 0" class="text-center text-muted text-xs py-4">
-                No history available.
+                <p class="text-sm m-0 mt-2 text-main">{{ item.notes }}</p>
               </div>
-              <div *ngFor="let vital of vitalsHistory" class="inner-card mb-3 p-3" [style.border-left]="getRiskBorder(vital)">
-                <div class="flex justify-between text-xs text-muted mb-2">
-                  <span>{{ vital.recordedAt | date:'medium' }}</span>
-                  <div class="flex gap-2 items-center">
-                    <span class="badge" [ngClass]="getRiskBadgeClass(vital)" *ngIf="getRiskLevel(vital) !== 'Normal'">
-                      {{ getRiskLevel(vital) }}
-                    </span>
-                    <span class="badge" [ngClass]="vital.source === 'Clinical' ? 'badge-primary' : 'badge-warning'">
-                      {{ vital.source }}
-                    </span>
+            </div>
+          </div>
+
+          <!-- Lab Reports Tab -->
+          <div *ngIf="activeRecordTab === 'labs'" class="flex-col gap-4">
+            <div class="glass-card">
+              <h4 class="text-sm font-semibold mb-4 text-primary">Lab Reports</h4>
+              <div *ngIf="labReports.length === 0" class="text-center py-4 text-muted text-sm">No lab reports available.</div>
+              <div *ngFor="let report of labReports" class="inner-card p-4 mb-4 flex justify-between items-center">
+                <div>
+                  <h5 class="m-0 font-bold text-main">{{ report.test }}</h5>
+                  <span class="text-xs text-muted">{{ report.date | date:'mediumDate' }} • Status: {{ report.status }}</span>
+                  <p class="text-sm m-0 mt-1" [ngClass]="{'text-warning': report.result !== 'Normal', 'text-success': report.result === 'Normal'}">Result: {{ report.result }}</p>
+                </div>
+                <button class="btn btn-outline btn-sm">📄 View PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Imaging Tab -->
+          <div *ngIf="activeRecordTab === 'imaging'" class="flex-col gap-4">
+            <div class="glass-card">
+              <h4 class="text-sm font-semibold mb-4 text-primary">Imaging</h4>
+              <div *ngIf="imagingRecords.length === 0" class="text-center py-4 text-muted text-sm">No imaging records available.</div>
+              <div class="grid grid-cols-2 gap-4">
+                <div *ngFor="let image of imagingRecords" class="inner-card p-4">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h5 class="m-0 font-bold text-main">{{ image.type }} - {{ image.region }}</h5>
+                      <span class="text-xs text-muted">{{ image.date | date:'mediumDate' }}</span>
+                    </div>
+                  </div>
+                  <p class="text-sm m-0 mt-2 mb-4 text-main">{{ image.result }}</p>
+                  <div class="bg-gray-800 rounded p-4 text-center cursor-pointer hover:bg-gray-700 transition" style="height: 150px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2);">
+                    <span class="text-4xl">🖼️</span>
+                    <span class="ml-2 text-sm text-muted">View Image</span>
                   </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                  <div *ngIf="vital.bloodPressureSystolic">BP: {{ vital.bloodPressureSystolic }}/{{ vital.bloodPressureDiastolic }}</div>
-                  <div *ngIf="vital.heartRate">HR: {{ vital.heartRate }} bpm</div>
-                  <div *ngIf="vital.temperature">Temp: {{ vital.temperature }} °C</div>
-                  <div *ngIf="vital.weightKg">Weight: {{ vital.weightKg }} kg</div>
-                  <div *ngIf="vital.oxygenSaturation">SpO2: {{ vital.oxygenSaturation }}%</div>
-                </div>
-                <div *ngIf="vital.status === 'Verified'" class="text-xs text-success mt-2">✓ Verified by Doctor</div>
               </div>
             </div>
           </div>
@@ -485,10 +611,10 @@ Chart.register(...registerables);
                 <span class="text-muted">{{ vital.recordedAt | date:'medium' }}</span>
               </div>
               <ul class="list-none pl-0 m-0 grid grid-cols-2 gap-2 text-muted">
-                <li *ngIf="vital.heartRate">Heart Rate: {{ vital.heartRate }} bpm</li>
-                <li *ngIf="vital.bloodPressureSystolic">Blood Pressure: {{ vital.bloodPressureSystolic }}/{{ vital.bloodPressureDiastolic }} mmHg</li>
-                <li *ngIf="vital.temperature">Temperature: {{ vital.temperature }} °F</li>
-                <li *ngIf="vital.weight">Weight: {{ vital.weight }} lbs</li>
+                <li>Heart Rate: {{ vital.heartRate ? vital.heartRate + ' bpm' : 'Not added' }}</li>
+                <li>Blood Pressure: {{ vital.bloodPressureSystolic ? vital.bloodPressureSystolic + '/' + vital.bloodPressureDiastolic + ' mmHg' : 'Not added' }}</li>
+                <li>Temperature: {{ vital.temperature ? vital.temperature + ' °F' : 'Not added' }}</li>
+                <li>Weight: {{ vital.weight ? vital.weight + ' lbs' : 'Not added' }}</li>
               </ul>
             </div>
           </div>
@@ -654,6 +780,93 @@ Chart.register(...registerables);
         </form>
       </div>
     </div>
+
+    <!-- Vital Details Modal -->
+    <div *ngIf="showVitalDetailsModal && selectedVital" class="modal-overlay" (click)="closeVitalDetailsModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">Vital Reading Details</h3>
+            <p class="text-sm text-muted mt-1">Recorded on {{ selectedVital.recordedAt | date:'medium' }}</p>
+          </div>
+          <button class="modal-close-btn" (click)="closeVitalDetailsModal()">&times;</button>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title">Measurements</h4>
+          <div class="modal-grid">
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Blood Pressure</span>
+              <span class="modal-detail-value">{{ selectedVital.bloodPressureSystolic ? selectedVital.bloodPressureSystolic + '/' + selectedVital.bloodPressureDiastolic + ' mmHg' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Heart Rate</span>
+              <span class="modal-detail-value">{{ selectedVital.heartRate ? selectedVital.heartRate + ' bpm' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Temperature</span>
+              <span class="modal-detail-value">{{ selectedVital.temperature ? selectedVital.temperature + ' °C' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">SpO2</span>
+              <span class="modal-detail-value">{{ selectedVital.oxygenSaturation ? selectedVital.oxygenSaturation + '%' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Weight</span>
+              <span class="modal-detail-value">{{ selectedVital.weightKg ? selectedVital.weightKg + ' kg' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Height</span>
+              <span class="modal-detail-value">{{ selectedVital.heightCm ? selectedVital.heightCm + ' cm' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">BMI</span>
+              <span class="modal-detail-value">{{ selectedVital.bmi ? selectedVital.bmi : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Blood Sugar</span>
+              <span class="modal-detail-value">{{ selectedVital.bloodSugar ? selectedVital.bloodSugar + ' mg/dL' : 'Not added' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Respiratory Rate</span>
+              <span class="modal-detail-value">{{ selectedVital.respiratoryRate ? selectedVital.respiratoryRate + ' bpm' : 'Not added' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title">Context</h4>
+          <div class="modal-grid">
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Source</span>
+              <span class="modal-detail-value">
+                <span class="badge" [ngClass]="selectedVital.source === 'Clinical' ? 'badge-primary' : 'badge-warning'">
+                  {{ selectedVital.source }}
+                </span>
+              </span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Status</span>
+              <span class="modal-detail-value">
+                <span *ngIf="selectedVital.status === 'Verified'" class="text-success text-sm font-bold">✓ Verified by {{ selectedVital.verifiedByName || 'Doctor' }}</span>
+                <span *ngIf="selectedVital.status !== 'Verified'" class="text-warning text-sm font-bold">Pending Verification</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section" *ngIf="selectedVital.notes">
+          <h4 class="modal-section-title">Notes</h4>
+          <div class="inner-card">
+            <p class="text-sm">{{ selectedVital.notes }}</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end mt-6">
+          <button (click)="closeVitalDetailsModal()" class="btn btn-outline">Close</button>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .filter-btn {
@@ -729,6 +942,12 @@ Chart.register(...registerables);
   styleUrl: './patient-dashboard.css'
 })
 export class PatientDashboardComponent implements OnInit, OnDestroy {
+  isSidebarCollapsed = false;
+
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  }
+
   patientName = 'Patient';
   patientInitials = 'PT';
   appointments: any[] = [];
@@ -740,7 +959,7 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   loading = false;
   filterStatus = '';
   searchTerm = '';
-  sortBy = 'dateDesc';
+  sortBy = 'dateAsc';
   minDate = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 
   isVideoCallActive: boolean = false;
@@ -748,10 +967,39 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
 
   // Computed
   get upcomingAppointments(): any[] {
-    return this.appointments.filter(a => a.status === 'Pending' || a.status === 'Confirmed');
+    const upcoming = this.appointments.filter(a => a.status === 'Pending' || a.status === 'Confirmed');
+    upcoming.sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+    return upcoming;
+  }
+
+  get todayOrTomorrowAppointment(): any {
+    const upcoming = this.upcomingAppointments;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(today.getDate() + 2);
+
+    for (let apt of upcoming) {
+      const aptDate = new Date(apt.appointmentDate);
+      if (aptDate >= today && aptDate < dayAfterTomorrow) {
+        return apt;
+      }
+    }
+    return null;
+  }
+
+  get nextFewAppointments(): any[] {
+    const todayOrTomorrow = this.todayOrTomorrowAppointment;
+    let upcoming = this.upcomingAppointments;
+    if (todayOrTomorrow) {
+      upcoming = upcoming.filter(a => a.id !== todayOrTomorrow.id);
+    }
+    return upcoming.slice(0, 3);
   }
   get filteredAppointments(): any[] {
-    let result = this.appointments;
+    const now = new Date();
+    // Filter to only include future appointments
+    let result = this.appointments.filter(a => new Date(a.appointmentDate).getTime() > now.getTime());
     if (this.filterStatus) {
       result = result.filter(a => a.status === this.filterStatus);
     }
@@ -768,9 +1016,13 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     result = [...result]; // Clone to avoid mutating original
     result.sort((a, b) => {
       if (this.sortBy === 'dateDesc') {
-        return new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
+        const dateDiff = new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return (b.startTime || '').localeCompare(a.startTime || '');
       } else if (this.sortBy === 'dateAsc') {
-        return new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime();
+        const dateDiff = new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return (a.startTime || '').localeCompare(b.startTime || '');
       } else if (this.sortBy === 'doctorAsc') {
         return (a.doctorName || '').localeCompare(b.doctorName || '');
       } else if (this.sortBy === 'doctorDesc') {
@@ -813,6 +1065,24 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   vitalsHistory: VitalResponseDto[] = [];
   homeVitalForm: any = {};
   submittingVitals = false;
+
+  activeRecordTab = 'vitals';
+
+  medicalHistory = [
+    { date: '2025-11-10', condition: 'Hypertension', doctor: 'Dr. Smith', notes: 'Prescribed Amlodipine 5mg.' },
+    { date: '2025-06-15', condition: 'Type 2 Diabetes', doctor: 'Dr. Lee', notes: 'Started Metformin 500mg.' }
+  ];
+
+  labReports = [
+    { date: '2026-05-20', test: 'Complete Blood Count (CBC)', result: 'Normal', status: 'Final' },
+    { date: '2026-05-20', test: 'Lipid Panel', result: 'Elevated LDL', status: 'Final' },
+    { date: '2026-02-10', test: 'HbA1c', result: '6.8%', status: 'Final' }
+  ];
+
+  imagingRecords = [
+    { date: '2026-01-05', type: 'Chest X-Ray', region: 'Chest', result: 'Clear, no abnormalities detected.' },
+    { date: '2025-08-12', type: 'MRI', region: 'Brain', result: 'No acute intracranial pathology.' }
+  ];
 
   // Chart Configuration
   lineChartData: ChartConfiguration['data'] = { datasets: [], labels: [] };
@@ -1113,6 +1383,19 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     if (level === 'Critical') return 'badge-danger';
     if (level === 'High' || level === 'Low' || level === 'Abnormal') return 'badge-warning';
     return 'badge-success';
+  }
+
+  showVitalDetailsModal = false;
+  selectedVital: VitalResponseDto | null = null;
+
+  viewVitalDetails(vital: VitalResponseDto) {
+    this.selectedVital = vital;
+    this.showVitalDetailsModal = true;
+  }
+
+  closeVitalDetailsModal() {
+    this.showVitalDetailsModal = false;
+    this.selectedVital = null;
   }
 
   getRiskBorder(vital: any): string {

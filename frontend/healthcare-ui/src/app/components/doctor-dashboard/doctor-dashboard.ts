@@ -15,7 +15,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
   template: `
     <div class="dashboard-shell">
       <!-- Left Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
         <div class="sidebar-header">
           <div class="sidebar-logo">
             <span class="text-primary">✚</span> HealthPro
@@ -31,12 +31,12 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="nav-item" [class.active]="activeNav === 'schedule'" (click)="navigate('schedule')">
             <span class="nav-icon">🗓️</span> Today's Schedule
           </div>
-          <div class="nav-item" [class.active]="activeNav === 'queue'" (click)="navigate('queue')">
+          <!-- <div class="nav-item" [class.active]="activeNav === 'queue'" (click)="navigate('queue')">
             <span class="nav-icon">👥</span> Patient Queue
           </div>
           <div class="nav-item" [class.active]="activeNav === 'records'" (click)="navigate('records')">
             <span class="nav-icon">📁</span> Medical Records
-          </div>
+          </div> -->
           <div class="nav-item" [class.active]="activeNav === 'telemedicine'" (click)="navigate('telemedicine')">
             <span class="nav-icon">💻</span> Telemedicine
           </div>
@@ -53,7 +53,8 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
       <main class="main-area">
         <!-- Top Bar -->
         <header class="top-bar">
-          <div class="top-bar-left">
+          <div class="top-bar-left flex items-center gap-3">
+            <button class="btn-icon" (click)="toggleSidebar()" style="background:none; border:none; color:var(--text-main); font-size:1.5rem; cursor:pointer; padding:0; margin-right:10px;">☰</button>
             <h2 class="m-0 font-bold" *ngIf="!inConsultation">{{ getNavTitle() }}</h2>
             <h2 class="m-0 font-bold text-primary" *ngIf="inConsultation">Consultation Workspace</h2>
           </div>
@@ -102,17 +103,18 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="content-grid">
             <!-- Left Column: Schedule -->
             <div class="flex-col gap-6">
+              <!-- Today's Schedule -->
               <div class="glass-card">
                 <div class="flex justify-between items-center mb-4">
                   <h3 class="m-0">Today's Schedule</h3>
-                  <button class="btn btn-outline btn-xs" (click)="navigate('schedule')">View All</button>
+                  <button class="btn btn-outline btn-xs" (click)="changeDayAndNavigate(0)">View All</button>
                 </div>
                 
-                <div *ngIf="mockSchedule.length === 0" class="text-muted text-sm py-4 text-center">
+                <div *ngIf="dashboardTodaySchedule.length === 0" class="text-muted text-sm py-4 text-center">
                   No appointments scheduled for today.
                 </div>
                 <div class="flex-col gap-3">
-                  <div *ngFor="let apt of mockSchedule.slice(0,5)" class="inner-card flex justify-between items-center p-3">
+                  <div *ngFor="let apt of dashboardTodaySchedule.slice(0,5)" class="inner-card flex justify-between items-center p-3">
                     <div class="flex gap-4 items-center">
                       <div class="text-main font-bold" style="width: 60px;">{{ apt.time }}</div>
                       <div>
@@ -127,10 +129,61 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
                   </div>
                 </div>
               </div>
+
+              <!-- Tomorrow's Schedule -->
+              <div class="glass-card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="m-0">Tomorrow's Appointments</h3>
+                  <button class="btn btn-outline btn-xs" (click)="changeDayAndNavigate(1)">View</button>
+                </div>
+                
+                <div *ngIf="tomorrowSchedule.length === 0" class="text-muted text-sm py-4 text-center">
+                  No appointments scheduled for tomorrow.
+                </div>
+                <div class="flex-col gap-3">
+                  <div *ngFor="let apt of tomorrowSchedule.slice(0,5)" class="inner-card flex justify-between items-center p-3">
+                    <div class="flex gap-4 items-center">
+                      <div class="text-main font-bold" style="width: 60px;">{{ apt.time }}</div>
+                      <div>
+                        <div class="font-semibold">{{ apt.name }}</div>
+                        <div class="text-xs text-muted">{{ apt.reason }}</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                      <span class="badge" [ngClass]="getBadgeClass(apt.status)">{{ apt.status }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Right Column: Queue & Pending -->
             <div class="flex-col gap-6">
+              <!-- Waiting Patients -->
+              <div class="glass-card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="m-0 text-accent">👥 Waiting Patients</h3>
+                  <button class="btn btn-outline btn-xs" (click)="navigate('queue')">View Queue</button>
+                </div>
+                <div *ngIf="mockQueue.length === 0" class="text-muted text-sm py-2 text-center">
+                  No patients waiting.
+                </div>
+                <div class="flex-col gap-2">
+                  <div *ngFor="let q of mockQueue.slice(0, 3)" class="inner-card p-3">
+                    <div class="flex justify-between items-start mb-2">
+                      <div>
+                        <strong class="text-sm text-main">{{ q.name }}</strong>
+                        <div class="text-xs text-muted">Waiting {{ q.waitMins }} min • {{ q.priority }}</div>
+                      </div>
+                      <span class="badge" [ngClass]="{'badge-danger': q.priority === 'Emergency', 'badge-warning': q.priority === 'Urgent', 'badge-primary': q.priority === 'Normal'}">{{ q.token }}</span>
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="btn btn-primary btn-xs w-full" (click)="startConsultation(q.appointment)">Start Consult</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Pending Appointments -->
               <div class="glass-card">
                 <div class="flex justify-between items-center mb-4">
@@ -182,6 +235,33 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
             <button class="btn btn-outline btn-sm" (click)="loadAppointments()">🔄 Refresh</button>
           </div>
 
+          <div *ngIf="topAppointments.length > 0" class="glass-card mb-6" style="border: 1px solid var(--primary);">
+            <h4 class="m-0 mb-4 text-primary flex items-center gap-2">
+              <span class="text-xl">📅</span> Upcoming Appointments
+            </h4>
+            <div class="flex-col gap-3">
+              <div *ngFor="let apt of topAppointments" class="apt-row inner-card flex justify-between items-center p-4 cursor-pointer hover-lift" [class.apt-pending]="apt.status === 'Pending'" [class.apt-confirmed]="apt.status === 'Confirmed'" [class.apt-completed]="apt.status === 'Completed'" [class.apt-cancelled]="apt.status === 'Cancelled' || apt.status === 'Rejected'" (click)="viewAppointmentDetails(apt)">
+                <!-- Left: Patient Info -->
+                <div class="flex gap-4 items-center" style="flex: 1;">
+                  <div class="patient-avatar">{{ getInitials(apt.patientName) }}</div>
+                  <div>
+                    <div class="font-semibold text-main">{{ apt.patientName }}</div>
+                    <div class="text-xs text-muted mt-1">📅 {{ apt.appointmentDate | date:'mediumDate' }} &nbsp; ⏰ {{ apt.startTime }} – {{ apt.endTime }} &nbsp; • {{ apt.type }}</div>
+                  </div>
+                </div>
+                <!-- Middle: Status -->
+                <div class="flex-shrink-0 px-4">
+                  <span class="badge" [ngClass]="getDoctorBadgeClass(apt.status)">{{ apt.status }}</span>
+                </div>
+                <!-- Right: Actions -->
+                <div class="flex gap-2 flex-shrink-0" style="flex-wrap: wrap;">
+                  <button *ngIf="apt.status === 'Pending'" class="btn btn-xs" style="background: rgba(34,197,94,0.15); color: var(--secondary); border: 1px solid rgba(34,197,94,0.3);" (click)="$event.stopPropagation(); confirmAppointment(apt)">✓ Confirm</button>
+                  <button *ngIf="apt.status === 'Confirmed'" class="btn btn-primary btn-xs" (click)="$event.stopPropagation(); startConsultationFromApt(apt)">Start Consult</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Status Filter Tabs -->
           <div class="flex gap-2 mb-4" style="flex-wrap: wrap; justify-content: space-between; align-items: center;">
             <div class="flex gap-2" style="flex-wrap: wrap;">
@@ -207,7 +287,7 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
             </div>
 
             <div *ngIf="!loadingApts && filteredDoctorAppointments.length > 0" class="flex-col gap-3">
-              <div *ngFor="let apt of filteredDoctorAppointments" class="apt-row inner-card flex justify-between items-center p-4" [class.apt-pending]="apt.status === 'Pending'" [class.apt-confirmed]="apt.status === 'Confirmed'" [class.apt-completed]="apt.status === 'Completed'" [class.apt-cancelled]="apt.status === 'Cancelled' || apt.status === 'Rejected'">
+              <div *ngFor="let apt of filteredDoctorAppointments" class="apt-row inner-card flex justify-between items-center p-4 cursor-pointer hover-lift" [class.apt-pending]="apt.status === 'Pending'" [class.apt-confirmed]="apt.status === 'Confirmed'" [class.apt-completed]="apt.status === 'Completed'" [class.apt-cancelled]="apt.status === 'Cancelled' || apt.status === 'Rejected'" (click)="viewAppointmentDetails(apt)">
                 <!-- Left: Patient Info -->
                 <div class="flex gap-4 items-center" style="flex: 1;">
                   <div class="patient-avatar">{{ getInitials(apt.patientName) }}</div>
@@ -228,26 +308,26 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
                   <!-- Pending actions -->
                   <button *ngIf="apt.status === 'Pending'"
                     class="btn btn-xs" style="background: rgba(34,197,94,0.15); color: var(--secondary); border: 1px solid rgba(34,197,94,0.3);"
-                    (click)="confirmAppointment(apt)">✓ Confirm</button>
+                    (click)="$event.stopPropagation(); confirmAppointment(apt)">✓ Confirm</button>
                   <button *ngIf="apt.status === 'Pending'"
                     class="btn btn-xs" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);"
-                    (click)="rejectAppointment(apt)">✕ Reject</button>
+                    (click)="$event.stopPropagation(); rejectAppointment(apt)">✕ Reject</button>
 
                   <!-- Confirmed actions -->
                   <button *ngIf="apt.status === 'Confirmed'"
                     class="btn btn-primary btn-xs"
-                    (click)="startConsultationFromApt(apt)">Start Consult</button>
+                    (click)="$event.stopPropagation(); startConsultationFromApt(apt)">Start Consult</button>
                   <button *ngIf="apt.status === 'Confirmed'"
                     class="btn btn-xs" style="background: rgba(34,197,94,0.15); color: var(--secondary); border: 1px solid rgba(34,197,94,0.3);"
-                    (click)="completeAppointment(apt)">✅ Complete</button>
+                    (click)="$event.stopPropagation(); completeAppointment(apt)">✅ Complete</button>
                   <button *ngIf="apt.status === 'Confirmed'"
                     class="btn btn-xs" style="background: rgba(156,163,175,0.15); color: var(--text-muted); border: 1px solid rgba(156,163,175,0.3);"
-                    (click)="markNoShow(apt)">No Show</button>
+                    (click)="$event.stopPropagation(); markNoShow(apt)">No Show</button>
 
                   <!-- Cancel for Pending/Confirmed -->
                   <button *ngIf="apt.status === 'Pending' || apt.status === 'Confirmed'"
                     class="btn btn-xs" style="background: rgba(239,68,68,0.08); color: #ef4444; border: 1px solid rgba(239,68,68,0.2);"
-                    (click)="cancelAppointmentDoctor(apt)">Cancel</button>
+                    (click)="$event.stopPropagation(); cancelAppointmentDoctor(apt)">Cancel</button>
                 </div>
               </div>
             </div>
@@ -342,12 +422,103 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="glass-card">
             <h3 class="m-0 mb-6">Medical Records Search</h3>
             <div class="flex gap-4 mb-6">
-              <input type="text" class="form-control" placeholder="Search patient by name, ID, or phone...">
-              <button class="btn btn-primary" (click)="searchRecords()">Search</button>
+              <input type="text" class="form-control" placeholder="Search patient by name, ID, or phone..." [(ngModel)]="recordSearchTerm" (keyup.enter)="searchRecords()">
+              <button class="btn btn-primary" (click)="searchRecords()">
+                <span *ngIf="!isSearching">Search</span>
+                <span *ngIf="isSearching">Searching...</span>
+              </button>
             </div>
-            <div class="inner-card p-8 text-center text-muted">
+            
+            <div *ngIf="!searchedPatient && searchResults.length === 0" class="inner-card p-8 text-center text-muted">
               <span class="text-4xl mb-4 block">🗂️</span>
               Enter a patient's details to view their complete medical history, lab reports, and imaging.
+            </div>
+
+            <!-- Search Results List -->
+            <div *ngIf="searchResults.length > 0 && !searchedPatient" class="flex-col gap-3">
+               <h4 class="m-0 mb-2">Search Results ({{ searchResults.length }})</h4>
+               <div *ngFor="let p of searchResults" class="inner-card p-4 flex justify-between items-center cursor-pointer hover-lift" (click)="selectPatient(p)">
+                 <div>
+                   <strong class="text-main">{{ p.name }}</strong>
+                   <span class="text-xs text-muted block">ID: #{{ p.id }} • {{ p.age }} yrs • {{ p.gender }}</span>
+                 </div>
+                 <button class="btn btn-outline btn-xs">View Records</button>
+               </div>
+            </div>
+
+            <div *ngIf="searchedPatient">
+              <div class="mb-4">
+                <button class="btn btn-outline btn-xs" (click)="searchedPatient = null">← Back to Search Results</button>
+              </div>
+              <div class="flex justify-between items-center mb-4 p-4 inner-card">
+                <div>
+                  <h4 class="m-0 font-bold text-main">{{ searchedPatient.name }}</h4>
+                  <span class="text-xs text-muted">ID: #{{ searchedPatient.id }} • {{ searchedPatient.age }} yrs • {{ searchedPatient.gender }}</span>
+                </div>
+              </div>
+              
+              <!-- Tabs -->
+              <div class="flex gap-4 border-b border-gray-700 mb-6">
+                <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'history'" [class.text-primary]="activeRecordTab === 'history'" [class.border-transparent]="activeRecordTab !== 'history'" [class.text-muted]="activeRecordTab !== 'history'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'history'">Medical History</button>
+                <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'labs'" [class.text-primary]="activeRecordTab === 'labs'" [class.border-transparent]="activeRecordTab !== 'labs'" [class.text-muted]="activeRecordTab !== 'labs'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'labs'">Lab Reports</button>
+                <button class="pb-2 px-1 text-sm font-medium border-b-2" [class.border-primary]="activeRecordTab === 'imaging'" [class.text-primary]="activeRecordTab === 'imaging'" [class.border-transparent]="activeRecordTab !== 'imaging'" [class.text-muted]="activeRecordTab !== 'imaging'" style="background:none; color:inherit; cursor:pointer" (click)="activeRecordTab = 'imaging'">Imaging</button>
+              </div>
+
+              <!-- Medical History Tab -->
+              <div *ngIf="activeRecordTab === 'history'" class="flex-col gap-4">
+                <div class="glass-card">
+                  <h4 class="text-sm font-semibold mb-4 text-primary">Complete Medical History</h4>
+                  <div *ngIf="searchedPatient.medicalHistory.length === 0" class="text-center py-4 text-muted text-sm">No medical history available.</div>
+                  <div *ngFor="let item of searchedPatient.medicalHistory" class="inner-card p-4 mb-4">
+                    <div class="flex justify-between items-start mb-2">
+                      <div>
+                        <h5 class="m-0 font-bold text-main">{{ item.condition }}</h5>
+                        <span class="text-xs text-muted">{{ item.date | date:'mediumDate' }} • Diagnosed by {{ item.doctor }}</span>
+                      </div>
+                    </div>
+                    <p class="text-sm m-0 mt-2 text-main">{{ item.notes }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lab Reports Tab -->
+              <div *ngIf="activeRecordTab === 'labs'" class="flex-col gap-4">
+                <div class="glass-card">
+                  <h4 class="text-sm font-semibold mb-4 text-primary">Lab Reports</h4>
+                  <div *ngIf="searchedPatient.labReports.length === 0" class="text-center py-4 text-muted text-sm">No lab reports available.</div>
+                  <div *ngFor="let report of searchedPatient.labReports" class="inner-card p-4 mb-4 flex justify-between items-center">
+                    <div>
+                      <h5 class="m-0 font-bold text-main">{{ report.test }}</h5>
+                      <span class="text-xs text-muted">{{ report.date | date:'mediumDate' }} • Status: {{ report.status }}</span>
+                      <p class="text-sm m-0 mt-1" [ngClass]="{'text-warning': report.result !== 'Normal', 'text-success': report.result === 'Normal'}">Result: {{ report.result }}</p>
+                    </div>
+                    <button class="btn btn-outline btn-sm">📄 View PDF</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Imaging Tab -->
+              <div *ngIf="activeRecordTab === 'imaging'" class="flex-col gap-4">
+                <div class="glass-card">
+                  <h4 class="text-sm font-semibold mb-4 text-primary">Imaging</h4>
+                  <div *ngIf="searchedPatient.imagingRecords.length === 0" class="text-center py-4 text-muted text-sm">No imaging records available.</div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div *ngFor="let image of searchedPatient.imagingRecords" class="inner-card p-4">
+                      <div class="flex justify-between items-start mb-2">
+                        <div>
+                          <h5 class="m-0 font-bold text-main">{{ image.type }} - {{ image.region }}</h5>
+                          <span class="text-xs text-muted">{{ image.date | date:'mediumDate' }}</span>
+                        </div>
+                      </div>
+                      <p class="text-sm m-0 mt-2 mb-4 text-main">{{ image.result }}</p>
+                      <div class="bg-gray-800 rounded p-4 text-center cursor-pointer hover:bg-gray-700 transition" style="height: 150px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,0.2);">
+                        <span class="text-4xl">🖼️</span>
+                        <span class="ml-2 text-sm text-muted">View Image</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -357,21 +528,63 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
           <div class="glass-card">
             <div class="flex justify-between items-center mb-6">
               <h3 class="m-0">Telemedicine Sessions</h3>
-              <button class="btn btn-secondary" (click)="joinRoom()">Join Active Room</button>
             </div>
             <div class="grid grid-cols-2 gap-6">
                <div class="inner-card">
                  <div class="text-center p-6">
                     <div class="text-4xl mb-4">🎥</div>
                     <h4 class="mb-2">Virtual Waiting Room</h4>
-                    <p class="text-sm text-muted mb-4">0 patients currently waiting online.</p>
+                    <p class="text-sm text-muted mb-4">{{ waitingVideoPatients.length }} patients currently waiting online.</p>
+                 </div>
+                 <div *ngIf="waitingVideoPatients.length > 0" class="flex-col gap-2 mt-4">
+                   <div *ngFor="let apt of waitingVideoPatients" class="flex justify-between items-center p-2 border-b border-gray-700">
+                     <div>
+                       <strong class="text-main">{{ apt.patientName }}</strong>
+                       <span class="text-xs text-muted block">{{ apt.startTime }}</span>
+                     </div>
+                     <button class="btn btn-secondary btn-xs" (click)="startConsultationFromApt(apt)">Start Video Consultation</button>
+                   </div>
                  </div>
                </div>
                <div class="inner-card">
                  <h4 class="mb-4">Upcoming Video Calls</h4>
-                 <div class="text-sm text-muted p-4 text-center">No video consultations scheduled for today.</div>
+                 <div *ngIf="videoAppointments.length === 0" class="text-sm text-muted p-4 text-center">No video consultations scheduled for today.</div>
+                 <div *ngIf="videoAppointments.length > 0" class="flex-col gap-2">
+                   <div *ngFor="let apt of videoAppointments" class="flex justify-between items-center p-2 border-b border-gray-700">
+                     <div>
+                       <strong class="text-main">{{ apt.patientName }}</strong>
+                       <span class="badge" [ngClass]="getDoctorBadgeClass(apt.status)">{{ apt.status }}</span>
+                       <span class="text-xs text-muted block">{{ apt.startTime }}</span>
+                     </div>
+                     <button *ngIf="apt.status === 'Pending' || apt.status === 'Confirmed'" class="btn btn-outline btn-xs" (click)="startConsultationFromApt(apt)">Start</button>
+                   </div>
+                 </div>
                </div>
             </div>
+            
+            <div class="mt-8">
+              <h4 class="mb-4">Past Video Consultation Logs</h4>
+              <div *ngIf="pastVideoAppointments.length === 0" class="text-sm text-muted p-4 text-center inner-card">
+                No past video consultations found.
+              </div>
+              <div *ngIf="pastVideoAppointments.length > 0" class="flex-col gap-3">
+                <div *ngFor="let apt of pastVideoAppointments" class="inner-card flex justify-between items-center p-4 cursor-pointer hover-lift" style="border-left: 4px solid var(--success);" (click)="viewAppointmentDetails(apt)">
+                  <div class="flex gap-4 items-center">
+                    <div class="patient-avatar">{{ getInitials(apt.patientName) }}</div>
+                    <div>
+                      <strong class="text-main text-lg">{{ apt.patientName }}</strong>
+                      <span class="text-xs text-muted block mb-1">📅 {{ apt.appointmentDate | date:'mediumDate' }} at {{ apt.startTime }}</span>
+                      <p class="text-sm text-muted m-0 mt-2">
+                        <strong class="text-primary">Diagnosis/Notes:</strong> 
+                        {{ apt.diagnosis || apt.notes || 'No clinical notes recorded.' }}
+                      </p>
+                    </div>
+                  </div>
+                  <span class="badge badge-success">Completed</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -416,6 +629,48 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
                   <input type="password" class="form-control" placeholder="Confirm new password">
                 </div>
                 <button class="btn btn-secondary mt-2" (click)="changePassword()">Update Password</button>
+              </div>
+
+              <!-- Schedule Settings -->
+              <div class="flex-col gap-4" style="grid-column: span 2;">
+                <h4 class="m-0 text-primary mb-2">Working Hours Schedule</h4>
+                
+                <div class="inner-card p-4 mb-4">
+                  <h5 class="m-0 mb-3">Add Availability</h5>
+                  <div class="grid grid-cols-4 gap-4 items-end">
+                    <div class="form-group mb-0">
+                      <label class="form-label">Day of Week</label>
+                      <select class="form-control" [(ngModel)]="scheduleForm.dayOfWeek">
+                        <option *ngFor="let day of daysOfWeek" [value]="day.value">{{ day.label }}</option>
+                      </select>
+                    </div>
+                    <div class="form-group mb-0">
+                      <label class="form-label">Start Time</label>
+                      <input type="time" class="form-control" [(ngModel)]="scheduleForm.startTime">
+                    </div>
+                    <div class="form-group mb-0">
+                      <label class="form-label">End Time</label>
+                      <input type="time" class="form-control" [(ngModel)]="scheduleForm.endTime">
+                    </div>
+                    <div class="form-group mb-0">
+                      <button class="btn btn-primary w-full" (click)="addAvailability()">Add Slot</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="loadingSchedule" class="text-muted text-sm py-2">Loading schedule...</div>
+                <div *ngIf="!loadingSchedule && availabilities.length === 0" class="text-muted text-sm py-2">No working hours configured.</div>
+                
+                <div *ngIf="!loadingSchedule && availabilities.length > 0" class="grid grid-cols-3 gap-4">
+                  <div *ngFor="let avail of availabilities" class="inner-card p-3 flex justify-between items-center" style="border-left: 3px solid var(--primary)">
+                    <div>
+                      <strong class="text-main block">{{ getDayName(avail.dayOfWeek) }}</strong>
+                      <span class="text-xs text-muted">{{ avail.startTime }} - {{ avail.endTime }}</span>
+                    </div>
+                    <button class="btn btn-xs" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);" (click)="deleteAvailability(avail.id)">✕</button>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -487,13 +742,95 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
             [history]="activePatientHistory"
             [patientVitalsHistory]="activePatientVitalsHistory"
             [patientSubmittedVitals]="activePatientSubmittedVitals"
+            [initialNotes]="activePatientNotes"
             (onCancel)="endConsultation()"
+            (onSave)="saveConsultationDraft($event)"
             (onComplete)="completeConsultation($event)"
             (onSaveVitals)="saveClinicalVitals($event)"
             (verifyVital)="verifyPatientVital($event)">
           </app-consultation-workspace>
         </div>
       </main>
+    <!-- Appointment Details Modal -->
+    <div *ngIf="showDetailsModal && selectedAppointment" class="modal-overlay" (click)="closeDetailsModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">Appointment Details</h3>
+            <p class="text-sm text-muted mt-1">ID: #{{ selectedAppointment.id }}</p>
+          </div>
+          <button class="modal-close-btn" (click)="closeDetailsModal()">&times;</button>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title">Patient Info</h4>
+          <div class="modal-grid">
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Patient</span>
+              <span class="modal-detail-value">{{ selectedAppointment.patientName }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Type</span>
+              <span class="modal-detail-value">{{ selectedAppointment.type }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Date</span>
+              <span class="modal-detail-value">{{ selectedAppointment.appointmentDate | date:'fullDate' }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Time</span>
+              <span class="modal-detail-value">{{ selectedAppointment.startTime }} – {{ selectedAppointment.endTime }}</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-label">Status</span>
+              <span class="modal-detail-value">
+                <span class="badge" [ngClass]="getDoctorBadgeClass(selectedAppointment.status)">{{ selectedAppointment.status }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section" *ngIf="selectedAppointment.reason">
+          <h4 class="modal-section-title">Reason for Visit</h4>
+          <div class="inner-card">
+            <p class="text-sm">{{ selectedAppointment.reason }}</p>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title secondary-title">Consultation Notes & Diagnosis</h4>
+          <div class="inner-card">
+            <p class="text-sm font-semibold mb-1 text-primary" *ngIf="selectedAppointment.diagnosis">Diagnosis: {{ selectedAppointment.diagnosis }}</p>
+            <p class="text-sm" style="white-space: pre-wrap;">{{ selectedAppointment.notes || 'No notes available.' }}</p>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4 class="modal-section-title accent-title">Recorded Vitals</h4>
+          <div *ngIf="!selectedAppointment.vitals || selectedAppointment.vitals.length === 0" class="text-muted text-sm">
+            No vitals entered for this appointment.
+          </div>
+          <div *ngIf="selectedAppointment.vitals && selectedAppointment.vitals.length > 0" class="flex-col gap-2">
+            <div *ngFor="let vital of selectedAppointment.vitals" class="inner-card p-3 text-sm">
+              <div class="flex justify-between mb-2">
+                <strong class="text-main">Recorded At:</strong>
+                <span class="text-muted">{{ vital.recordedAt | date:'medium' }}</span>
+              </div>
+              <ul class="list-none pl-0 m-0 grid grid-cols-2 gap-2 text-muted">
+                <li>Heart Rate: {{ vital.heartRate ? vital.heartRate + ' bpm' : 'Not added' }}</li>
+                <li>Blood Pressure: {{ vital.bloodPressureSystolic ? vital.bloodPressureSystolic + '/' + vital.bloodPressureDiastolic + ' mmHg' : 'Not added' }}</li>
+                <li>Temperature: {{ vital.temperature ? vital.temperature + ' °C' : 'Not added' }}</li>
+                <li>Weight: {{ vital.weightKg ? vital.weightKg + ' kg' : 'Not added' }}</li>
+                <li>SpO2: {{ vital.oxygenSaturation ? vital.oxygenSaturation + '%' : 'Not added' }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end mt-6">
+          <button (click)="closeDetailsModal()" class="btn btn-outline">Close</button>
+        </div>
+      </div>
     </div>
 
     <!-- Profile Edit Modal -->
@@ -535,6 +872,17 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
               <label class="form-label">Specialization</label>
               <input type="text" class="form-control" [(ngModel)]="profileForm.specialization" name="specialization" required>
             </div>
+            <div class="form-group">
+              <label class="form-label">Consultation Type</label>
+              <select class="form-control" [(ngModel)]="profileForm.consultationType" name="consultationType">
+                <option value="Both">Both (Video & Hospital)</option>
+                <option value="Video">Video Consulting Only</option>
+                <option value="Hospital">Hospital Visit Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
             <div class="form-group">
               <label class="form-label">License Number</label>
               <input type="text" class="form-control" [(ngModel)]="profileForm.licenseNumber" name="licenseNumber">
@@ -604,6 +952,12 @@ import { ConsultationWorkspaceComponent } from './consultation-workspace/consult
   styleUrl: './doctor-dashboard.css'
 })
 export class DoctorDashboardComponent implements OnInit, OnDestroy {
+  isSidebarCollapsed = false;
+
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  }
+
   activeNav = 'dashboard';
   currentTime = new Date();
   private timer: any;
@@ -620,6 +974,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   activePatientHistory: any[] = [];
   activePatientVitalsHistory: VitalResponseDto[] = [];
   activePatientSubmittedVitals: VitalResponseDto[] = [];
+  activePatientNotes: any = null;
   activeEncounterId: number | null = null;
 
   // Selected date for viewing schedule
@@ -635,6 +990,11 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   aptFilterStatus = '';
   aptSearchTerm = '';
 
+  selectedAppointment: any = null;
+  showDetailsModal = false;
+
+  dashboardTodaySchedule: any[] = [];
+  tomorrowSchedule: any[] = [];
   mockSchedule: any[] = [];
   mockQueue: any[] = [];
   clinicalAlerts: any[] = [];
@@ -652,17 +1012,42 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     email: '',
     phone: '',
     specialization: '',
+    consultationType: 'Both',
     licenseNumber: '',
     experienceYears: null,
     consultationFee: null
   };
+
+  availabilities: any[] = [];
+  scheduleForm = {
+    dayOfWeek: 1,
+    startTime: '09:00',
+    endTime: '17:00',
+    slotDurationMinutes: 30
+  };
+  loadingSchedule = false;
+  daysOfWeek = [
+    { value: 0, label: 'Sunday' },
+    { value: 1, label: 'Monday' },
+    { value: 2, label: 'Tuesday' },
+    { value: 3, label: 'Wednesday' },
+    { value: 4, label: 'Thursday' },
+    { value: 5, label: 'Friday' },
+    { value: 6, label: 'Saturday' }
+  ];
 
   get pendingAppointments(): any[] {
     return this.appointments.filter(a => a.status === 'Pending');
   }
 
   get filteredDoctorAppointments(): any[] {
-    let result = this.appointments;
+    const now = new Date();
+    // Filter to only include future appointments
+    let result = this.appointments.filter(a => new Date(a.appointmentDate).getTime() > now.getTime());
+    
+    // Sort ascending by date and time
+    result.sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+
     if (this.aptFilterStatus) {
       result = result.filter(a => a.status === this.aptFilterStatus);
     }
@@ -674,6 +1059,49 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       );
     }
     return result;
+  }
+
+  get topAppointments(): any[] {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayAppointments = this.appointments.filter(a => {
+      const aptDate = new Date(a.appointmentDate);
+      return aptDate.getTime() >= today.getTime() && aptDate.getTime() < tomorrow.getTime();
+    }).sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+
+    if (todayAppointments.length > 0) {
+      return todayAppointments;
+    }
+
+    return this.appointments.filter(a => {
+      const aptDate = new Date(a.appointmentDate);
+      return aptDate.getTime() >= tomorrow.getTime();
+    }).sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime()).slice(0, 2);
+  }
+
+  get videoAppointments(): any[] {
+    return this.appointments.filter(a => 
+      a.type === 'Video Consultation' && 
+      a.status !== 'Completed' && 
+      a.status !== 'Cancelled' && 
+      a.status !== 'Rejected'
+    ).sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+  }
+
+  get waitingVideoPatients(): any[] {
+    return this.appointments.filter(a => 
+      a.type === 'Video Consultation' && 
+      (a.encounterStatus === 'CheckedIn' || a.encounterStatus === 'VitalsRecorded' || a.status === 'Waiting')
+    ).sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+  }
+
+  get pastVideoAppointments(): any[] {
+    return this.appointments
+      .filter(a => a.type === 'Video Consultation' && a.status === 'Completed')
+      .sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
   }
 
   constructor(private api: ApiService, private vitalService: VitalService, private router: Router) {}
@@ -690,6 +1118,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.loadAppointments();
     this.loadProfile();
     this.loadNotifications();
+    this.loadAvailability();
 
     this.timer = setInterval(() => {
       this.currentTime = new Date();
@@ -740,33 +1169,49 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.completedTodayCount = todayApts.filter(a => a.status === 'Completed').length;
     this.pendingCount = this.appointments.filter(a => a.status === 'Pending').length;
 
+    const mapAppointment = (a: any) => {
+      let displayStatus = a.status;
+      if (displayStatus === 'Confirmed' || displayStatus === 'Pending') {
+        if (a.encounterStatus === 'CheckedIn' || a.encounterStatus === 'VitalsRecorded') {
+          displayStatus = 'Waiting';
+        } else if (a.encounterStatus === 'InConsultation') {
+          displayStatus = 'Emergency';
+        }
+      }
+      return {
+        id: a.id,
+        time: a.startTime,
+        name: a.patientName,
+        reason: a.reason || 'No reason specified',
+        status: displayStatus,
+        type: a.type,
+        rawStatus: a.status,
+        patientId: a.patientId,
+        encounterId: a.encounterId,
+        encounterStatus: a.encounterStatus,
+        vitals: a.vitals,
+        notes: a.notes,
+        diagnosis: a.diagnosis,
+        appointmentDate: a.appointmentDate
+      };
+    };
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    this.dashboardTodaySchedule = this.appointments
+      .filter(a => this.isSameDay(new Date(a.appointmentDate), today))
+      .map(mapAppointment)
+      .sort((a, b) => a.time.localeCompare(b.time));
+
+    this.tomorrowSchedule = this.appointments
+      .filter(a => this.isSameDay(new Date(a.appointmentDate), tomorrow))
+      .map(mapAppointment)
+      .sort((a, b) => a.time.localeCompare(b.time));
+
     this.mockSchedule = this.appointments
       .filter(a => this.isSameDay(new Date(a.appointmentDate), this.selectedDate))
-      .map(a => {
-        let displayStatus = a.status;
-        if (displayStatus === 'Confirmed' || displayStatus === 'Pending') {
-          if (a.encounterStatus === 'CheckedIn' || a.encounterStatus === 'VitalsRecorded') {
-            displayStatus = 'Waiting';
-          } else if (a.encounterStatus === 'InConsultation') {
-            displayStatus = 'Emergency';
-          }
-        }
-        return {
-          id: a.id,
-          time: a.startTime,
-          name: a.patientName,
-          reason: a.reason || 'No reason specified',
-          status: displayStatus,
-          type: a.type,
-          rawStatus: a.status,
-          patientId: a.patientId,
-          encounterId: a.encounterId,
-          encounterStatus: a.encounterStatus,
-          vitals: a.vitals,
-          notes: a.notes,
-          appointmentDate: a.appointmentDate
-        };
-      })
+      .map(mapAppointment)
       .sort((a, b) => a.time.localeCompare(b.time));
 
     this.mockQueue = this.appointments
@@ -999,9 +1444,18 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           .filter(a => a.patientId === apt.patientId && a.status === 'Completed')
           .map(a => ({
             date: new Date(a.appointmentDate).toLocaleDateString(),
-            type: 'General',
-            diagnosis: a.notes || 'Routine checkup. Consultation completed.'
+            type: a.type || 'General',
+            diagnosis: a.diagnosis || a.notes || 'Routine checkup. Consultation completed.',
+            vitals: a.vitals,
+            notes: a.notes,
+            reason: a.reason,
+            appointmentId: a.id
           }));
+
+        this.activePatientNotes = {
+          notesString: apt.notes,
+          diagnosis: apt.diagnosis
+        };
 
         this.activeEncounterId = apt.encounterId;
         this.inConsultation = true;
@@ -1016,6 +1470,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   endConsultation() {
     this.inConsultation = false;
     this.activePatient = null;
+    this.activePatientNotes = null;
     this.activeEncounterId = null;
     this.loadAppointments();
   }
@@ -1045,6 +1500,31 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  saveConsultationDraft(event: any) {
+    const encounterId = this.activeEncounterId;
+    if (!encounterId) return;
+
+    const notesSummary = `Chief Complaint: ${event.notes.chiefComplaint}\nHPI: ${event.notes.hpi}\nPlan: ${event.notes.plan}`;
+    const diagnosis = event.notes.assessment;
+
+    const orders = [];
+    if (event.prescriptions && event.prescriptions.length > 0) {
+      for (const rx of event.prescriptions) {
+        orders.push({ orderType: 'Pharmacy', description: `${rx.name} ${rx.dosage} - ${rx.frequency} for ${rx.duration}` });
+      }
+    }
+    if (event.orderedLabs && event.orderedLabs.length > 0) {
+      for (const lab of event.orderedLabs) {
+        orders.push({ orderType: 'Lab', description: lab });
+      }
+    }
+
+    this.api.saveConsultation(encounterId, { notes: notesSummary, diagnosis, orders }).subscribe({
+      next: () => { alert('Consultation details saved successfully!'); },
+      error: (err) => { alert('Failed to save consultation details: ' + (err.error?.message || err.message)); }
+    });
+  }
+
   changeDay(offset: number) {
     const newDate = new Date(this.selectedDate);
     newDate.setDate(newDate.getDate() + offset);
@@ -1052,8 +1532,75 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.processAppointments();
   }
 
-  searchRecords() { alert('Searching records... No matches found.'); }
-  joinRoom() { alert('Joining telemedicine room... Waiting for patient.'); }
+  changeDayAndNavigate(offset: number) {
+    const newDate = new Date();
+    newDate.setDate(newDate.getDate() + offset);
+    this.selectedDate = newDate;
+    this.processAppointments();
+    this.navigate('schedule');
+  }
+
+  viewAppointmentDetails(apt: any) {
+    this.selectedAppointment = apt;
+    this.showDetailsModal = true;
+  }
+
+  closeDetailsModal() {
+    this.showDetailsModal = false;
+    this.selectedAppointment = null;
+  }
+
+  recordSearchTerm = '';
+  searchedPatient: any = null;
+  activeRecordTab = 'history';
+  searchResults: any[] = [];
+  isSearching = false;
+
+  searchRecords() {
+    if (!this.recordSearchTerm) {
+      alert('Please enter a patient name or ID to search.');
+      return;
+    }
+    
+    this.isSearching = true;
+    this.searchedPatient = null;
+    this.api.searchPatients(this.recordSearchTerm).subscribe({
+      next: (results: any[]) => {
+        this.isSearching = false;
+        this.searchResults = results;
+        if (results.length === 0) {
+          alert('No records found for that search.');
+        } else if (results.length === 1) {
+          this.selectPatient(results[0]);
+        }
+      },
+      error: (err: any) => {
+        this.isSearching = false;
+        alert('Failed to search patients.');
+      }
+    });
+  }
+
+  selectPatient(patient: any) {
+    const matchingApts = this.appointments.filter(a => a.patientId === patient.id && a.status === 'Completed');
+    
+    const history = matchingApts.map(a => ({
+      date: new Date(a.appointmentDate).toLocaleDateString(),
+      condition: a.diagnosis || a.reason || 'General Consultation',
+      doctor: 'Dr. ' + (a.doctorName || this.doctorName),
+      notes: a.notes || 'Consultation completed.'
+    }));
+
+    this.searchedPatient = {
+      id: patient.id,
+      name: patient.name,
+      age: patient.age,
+      gender: patient.gender,
+      medicalHistory: history,
+      labReports: [],
+      imagingRecords: []
+    };
+  }
   saveSettings() { alert('Settings saved successfully!'); }
   changePassword() { alert('Password updated successfully!'); }
 
@@ -1151,7 +1698,8 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           specialization: data.specialization || '',
           licenseNumber: data.licenseNumber || '',
           experienceYears: data.experienceYears,
-          consultationFee: data.consultationFee
+          consultationFee: data.consultationFee,
+          consultationType: data.consultationType || 'Both'
         };
         this.showProfileModal = true;
       },
@@ -1205,6 +1753,67 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       },
       error: (err) => console.error('Failed to load vitals', err)
     });
+  }
+
+  loadAvailability() {
+    this.loadingSchedule = true;
+    this.api.getAvailability().subscribe({
+      next: (data) => {
+        this.availabilities = data || [];
+        this.loadingSchedule = false;
+      },
+      error: (err) => {
+        console.error('Failed to load availability', err);
+        this.loadingSchedule = false;
+      }
+    });
+  }
+
+  addAvailability() {
+    if (!this.scheduleForm.startTime || !this.scheduleForm.endTime) {
+      alert('Please select both start and end times');
+      return;
+    }
+    
+    // API expects TimeSpan (HH:mm:ss). Input type time returns HH:mm
+    const payload = {
+      dayOfWeek: parseInt(this.scheduleForm.dayOfWeek.toString()),
+      startTime: this.scheduleForm.startTime.length === 5 ? this.scheduleForm.startTime + ':00' : this.scheduleForm.startTime,
+      endTime: this.scheduleForm.endTime.length === 5 ? this.scheduleForm.endTime + ':00' : this.scheduleForm.endTime,
+      slotDurationMinutes: this.scheduleForm.slotDurationMinutes
+    };
+
+    this.api.createAvailability(payload).subscribe({
+      next: (data) => {
+        this.loadAvailability();
+        // Reset form times
+        this.scheduleForm.startTime = '';
+        this.scheduleForm.endTime = '';
+      },
+      error: (err) => {
+        console.error('Failed to create availability', err);
+        alert('Could not update schedule. Check the times and try again.');
+      }
+    });
+  }
+
+  deleteAvailability(id: number) {
+    if(confirm('Are you sure you want to remove this availability slot?')) {
+      this.api.deleteAvailability(id).subscribe({
+        next: () => {
+          this.loadAvailability();
+        },
+        error: (err) => {
+          console.error('Failed to delete availability', err);
+          alert('Failed to remove slot');
+        }
+      });
+    }
+  }
+  
+  getDayName(dayValue: number): string {
+    const day = this.daysOfWeek.find(d => d.value === dayValue);
+    return day ? day.label : 'Unknown';
   }
 
   saveClinicalVitals(vitalForm: any) {

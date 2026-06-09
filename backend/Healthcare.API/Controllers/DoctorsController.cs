@@ -37,6 +37,7 @@ namespace Healthcare.API.Controllers
                     d.LicenseNumber,
                     d.ExperienceYears,
                     d.ConsultationFee,
+                    d.ConsultationType,
                     d.Status,
                     FirstName = d.User!.FirstName,
                     LastName = d.User.LastName,
@@ -61,6 +62,7 @@ namespace Healthcare.API.Controllers
                     d.LicenseNumber,
                     d.ExperienceYears,
                     d.ConsultationFee,
+                    d.ConsultationType,
                     d.Status,
                     FirstName = d.User!.FirstName,
                     LastName = d.User.LastName,
@@ -129,7 +131,8 @@ namespace Healthcare.API.Controllers
                 doctor.Specialization,
                 doctor.LicenseNumber,
                 doctor.ExperienceYears,
-                doctor.ConsultationFee
+                doctor.ConsultationFee,
+                doctor.ConsultationType
             });
         }
 
@@ -166,6 +169,8 @@ namespace Healthcare.API.Controllers
                 doctor.ExperienceYears = dto.ExperienceYears.Value;
             if (dto.ConsultationFee != null)
                 doctor.ConsultationFee = dto.ConsultationFee.Value;
+            if (!string.IsNullOrWhiteSpace(dto.ConsultationType))
+                doctor.ConsultationType = dto.ConsultationType;
 
             await _context.SaveChangesAsync();
 
@@ -181,6 +186,7 @@ namespace Healthcare.API.Controllers
             public string? LicenseNumber { get; set; }
             public int? ExperienceYears { get; set; }
             public decimal? ConsultationFee { get; set; }
+            public string? ConsultationType { get; set; }
         }
     }
 }

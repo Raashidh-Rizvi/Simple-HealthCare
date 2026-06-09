@@ -265,3 +265,24 @@
   border-color: rgba(99, 102, 241, 0.25);
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.05);
 }
+
+/* Sidebar collapsed state */
+.sidebar.collapsed {
+  width: 80px;
+}
+.sidebar.collapsed .sidebar-logo {
+  font-size: 0;
+  justify-content: center;
+}
+.sidebar.collapsed .sidebar-logo .text-primary {
+  font-size: 24px;
+}
+.sidebar.collapsed .nav-item {
+  font-size: 0;
+  justify-content: center;
+  padding: 12px 0;
+}
+.sidebar.collapsed .nav-icon {
+  font-size: 18px;
+  margin: 0;
+}

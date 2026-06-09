@@ -85,6 +85,22 @@ namespace Healthcare.API.Controllers
             public List<OrderDto>? Orders { get; set; }
         }
 
+        [HttpPut("{id}/consultation/save")]
+        [Authorize(Roles = "Doctor,doctor")]
+        public async Task<IActionResult> SaveConsultation(int id, [FromBody] CompleteConsultationDto dto)
+        {
+            var encounter = await _context.Encounters
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (encounter == null) return NotFound();
+
+            encounter.Notes = dto.Notes;
+            encounter.Diagnosis = dto.Diagnosis;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Consultation details saved successfully" });
+        }
+
         [HttpPut("{id}/consultation/complete")]
         [Authorize(Roles = "Doctor,doctor")]
         public async Task<IActionResult> CompleteConsultation(int id, [FromBody] CompleteConsultationDto dto)

@@ -16,9 +16,6 @@ class DoctorDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Doctor Details',
             style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -26,12 +23,12 @@ class DoctorDetailsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              backgroundColor: PremiumColors.primary.withValues(alpha: 0.1),
               radius: 60,
               child: Text(
                 doctor.firstName[0] + doctor.lastName[0],
                 style: const TextStyle(
-                    color: AppColors.primary,
+                    color: PremiumColors.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 36),
               ),
@@ -46,13 +43,13 @@ class DoctorDetailsScreen extends StatelessWidget {
             Text(
               doctor.specialization,
               style:
-                  GoogleFonts.inter(fontSize: 18, color: AppColors.textLight),
+                  GoogleFonts.inter(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
             ),
             const SizedBox(height: 32),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -65,13 +62,13 @@ class DoctorDetailsScreen extends StatelessWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.email_outlined,
-                        color: AppColors.primary),
+                        color: PremiumColors.primary),
                     title: Text(doctor.email, style: GoogleFonts.inter()),
                   ),
                   const Divider(),
                   ListTile(
                     leading:
-                        const Icon(Icons.access_time, color: AppColors.primary),
+                        const Icon(Icons.access_time, color: PremiumColors.primary),
                     title: Text('Available Mon - Fri, 9:00 AM - 5:00 PM',
                         style: GoogleFonts.inter()),
                   ),
