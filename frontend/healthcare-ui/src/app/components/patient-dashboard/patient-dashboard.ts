@@ -75,25 +75,27 @@ Chart.register(...registerables);
             <h3 class="font-bold m-0 text-main">Patient Overview</h3>
             <a routerLink="/patient/book" class="btn btn-primary" style="text-decoration: none;">Book Appointment</a>
           </div>
-          <!-- KPI Row -->
-          <div class="kpi-grid">
-            <div class="glass-card kpi-card border-t-4 border-primary cursor-pointer" (click)="activeNav = 'appointments'">
-              <span class="kpi-title">Upcoming Appointments</span>
-              <span class="kpi-value">{{ upcomingCount }}</span>
-              <span class="kpi-trend">Pending or Confirmed</span>
-            </div>
-            <div class="glass-card kpi-card border-t-4 border-secondary cursor-pointer" (click)="activeNav = 'appointments'">
-              <span class="kpi-title">Completed Visits</span>
-              <span class="kpi-value">{{ completedCount }}</span>
-              <span class="kpi-trend">All time</span>
-            </div>
-          </div>
-
-          <!-- Recent Activity & Quick Actions -->
+          <!-- Content Grid wrapping KPI and Recent Activity -->
           <div class="content-grid">
-            <div class="flex-col gap-4">
+            <div class="flex-col gap-6">
+              <!-- KPI Row -->
+              <div class="kpi-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                <div class="glass-card kpi-card border-t-4 border-primary cursor-pointer" (click)="activeNav = 'appointments'">
+                  <span class="kpi-title">Upcoming Appointments</span>
+                  <span class="kpi-value">{{ upcomingCount }}</span>
+                  <span class="kpi-trend">Pending or Confirmed</span>
+                </div>
+                <div class="glass-card kpi-card border-t-4 border-secondary cursor-pointer" (click)="activeNav = 'appointments'">
+                  <span class="kpi-title">Completed Visits</span>
+                  <span class="kpi-value">{{ completedCount }}</span>
+                  <span class="kpi-trend">All time</span>
+                </div>
+              </div>
+
+              <!-- Recent Activity & Quick Actions -->
+              <div class="flex-col gap-4">
               <div class="glass-card">
-                <h3 class="m-0 mb-4 text-primary">Today's / Tomorrow's Appointment</h3>
+                <h3 class="m-0 mb-4 text-primary">{{ todayOrTomorrowTitle }}</h3>
                 <div *ngIf="!todayOrTomorrowAppointment" class="text-muted text-sm p-4 text-center">
                   No appointments scheduled for today or tomorrow.
                 </div>
@@ -131,9 +133,10 @@ Chart.register(...registerables);
                 <button class="btn btn-outline btn-sm mt-4 w-full" (click)="activeNav = 'appointments'">View All Appointments</button>
               </div>
             </div>
+          </div>
 
-            <div class="glass-card">
-              <div class="flex justify-between items-center mb-4">
+          <div class="glass-card">
+            <div class="flex justify-between items-center mb-4">
                 <h3 class="m-0 text-accent">Health Summary</h3>
                 <span *ngIf="vitalsHistory.length > 0 && getRiskLevel(vitalsHistory[0]) !== 'Normal'" 
                       class="badge" [ngClass]="getRiskBadgeClass(vitalsHistory[0])">
@@ -144,8 +147,8 @@ Chart.register(...registerables);
                 <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">🩸</span>
-                    <div>
-                      <strong class="block text-main">Blood Pressure</strong>
+                    <div class="flex-col">
+                      <strong class="text-main">Blood Pressure</strong>
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
@@ -154,8 +157,8 @@ Chart.register(...registerables);
                 <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">❤️</span>
-                    <div>
-                      <strong class="block text-main">Heart Rate</strong>
+                    <div class="flex-col">
+                      <strong class="text-main">Heart Rate</strong>
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
@@ -164,8 +167,8 @@ Chart.register(...registerables);
                 <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">🌡️</span>
-                    <div>
-                      <strong class="block text-main">Temperature</strong>
+                    <div class="flex-col">
+                      <strong class="text-main">Temperature</strong>
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
@@ -174,8 +177,8 @@ Chart.register(...registerables);
                 <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">🫁</span>
-                    <div>
-                      <strong class="block text-main">SpO2</strong>
+                    <div class="flex-col">
+                      <strong class="text-main">SpO2</strong>
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
@@ -184,8 +187,8 @@ Chart.register(...registerables);
                 <div class="inner-card flex justify-between items-center p-3">
                   <div class="flex items-center gap-3">
                     <span class="text-2xl">⚖️</span>
-                    <div>
-                      <strong class="block text-main">Weight</strong>
+                    <div class="flex-col">
+                      <strong class="text-main">Weight</strong>
                       <span class="text-xs text-muted">Last reading: {{ vitalsHistory[0].recordedAt | date:'shortDate' }}</span>
                     </div>
                   </div>
@@ -983,6 +986,22 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     return null;
   }
 
+  get todayOrTomorrowTitle(): string {
+    const apt = this.todayOrTomorrowAppointment;
+    if (!apt) return "Today's / Tomorrow's Appointment";
+    const aptDate = new Date(apt.appointmentDate);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (aptDate >= today && aptDate < tomorrow) {
+      return "Today's Appointment";
+    } else {
+      return "Tomorrow's Appointment";
+    }
+  }
+
   get nextFewAppointments(): any[] {
     const todayOrTomorrow = this.todayOrTomorrowAppointment;
     let upcoming = this.upcomingAppointments;
@@ -992,9 +1011,7 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     return upcoming.slice(0, 3);
   }
   get filteredAppointments(): any[] {
-    const now = new Date();
-    // Filter to only include future appointments
-    let result = this.appointments.filter(a => new Date(a.appointmentDate).getTime() > now.getTime());
+    let result = [...this.appointments];
     if (this.filterStatus) {
       result = result.filter(a => a.status === this.filterStatus);
     }

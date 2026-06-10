@@ -37,9 +37,10 @@ class _OverviewTabState extends State<OverviewTab> {
       Vital? latest;
       final profile = await _patientService.getPatientProfile();
       if (profile != null) {
-        _patientName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+        _patientName =
+            '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
         if (_patientName.isEmpty) _patientName = 'Patient';
-        
+
         final vitals = await _vitalService.getPatientVitals(profile['id']);
         if (vitals.isNotEmpty) {
           latest = vitals.first;
@@ -61,11 +62,25 @@ class _OverviewTabState extends State<OverviewTab> {
     }
   }
 
-  int get _upcomingCount => _appointments.where((a) => a.status.toLowerCase() == 'pending' || a.status.toLowerCase() == 'confirmed' || a.status.toLowerCase() == 'scheduled').length;
-  int get _completedCount => _appointments.where((a) => a.status.toLowerCase() == 'completed' || a.status.toLowerCase() == 'complete').length;
+  int get _upcomingCount => _appointments
+      .where((a) =>
+          a.status.toLowerCase() == 'pending' ||
+          a.status.toLowerCase() == 'confirmed' ||
+          a.status.toLowerCase() == 'scheduled')
+      .length;
+  int get _completedCount => _appointments
+      .where((a) =>
+          a.status.toLowerCase() == 'completed' ||
+          a.status.toLowerCase() == 'complete')
+      .length;
 
   List<Appointment> get _upcomingAppointments {
-    final upcoming = _appointments.where((a) => a.status.toLowerCase() == 'pending' || a.status.toLowerCase() == 'confirmed' || a.status.toLowerCase() == 'scheduled').toList();
+    final upcoming = _appointments
+        .where((a) =>
+            a.status.toLowerCase() == 'pending' ||
+            a.status.toLowerCase() == 'confirmed' ||
+            a.status.toLowerCase() == 'scheduled')
+        .toList();
     upcoming.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
     return upcoming;
   }
@@ -76,12 +91,30 @@ class _OverviewTabState extends State<OverviewTab> {
     final dayAfterTomorrow = today.add(const Duration(days: 2));
 
     for (var apt in _upcomingAppointments) {
-      if (apt.appointmentDate.isAfter(today.subtract(const Duration(seconds: 1))) && 
+      if (apt.appointmentDate
+              .isAfter(today.subtract(const Duration(seconds: 1))) &&
           apt.appointmentDate.isBefore(dayAfterTomorrow)) {
         return apt;
       }
     }
     return null;
+  }
+
+  String get _todayOrTomorrowTitle {
+    final apt = _todayOrTomorrowAppointment;
+    if (apt == null) return "Today's / Tomorrow's Appointment";
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final aptDate = DateTime(apt.appointmentDate.year,
+        apt.appointmentDate.month, apt.appointmentDate.day);
+
+    if (aptDate.isAtSameMomentAs(today)) {
+      return "Today's Appointment";
+    } else {
+      return "Tomorrow's Appointment";
+    }
   }
 
   List<Appointment> get _nextFewAppointments {
@@ -95,12 +128,12 @@ class _OverviewTabState extends State<OverviewTab> {
 
   String _getRiskLevel(Vital? vital) {
     if (vital == null) return 'Normal';
-    
+
     int sys = vital.bloodPressureSystolic ?? 0;
     int dia = vital.bloodPressureDiastolic ?? 0;
     int hr = int.tryParse(vital.heartRate ?? '0') ?? 0;
     double temp = double.tryParse(vital.temperature ?? '0') ?? 0.0;
-    
+
     if (sys >= 180 || dia >= 120) return 'Critical';
     if (sys >= 140 || dia >= 90) return 'High';
     if (sys > 0 && (sys < 90 || dia < 60)) return 'Low';
@@ -180,7 +213,10 @@ class _OverviewTabState extends State<OverviewTab> {
                               apt.specialization ?? 'Specialist',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
-                                color: Theme.of(context).textTheme.bodySmall?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color,
                               ),
                             ),
                           ],
@@ -232,7 +268,8 @@ class _OverviewTabState extends State<OverviewTab> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Theme.of(context).dividerColor),
                     ),
@@ -264,7 +301,8 @@ class _OverviewTabState extends State<OverviewTab> {
                         margin: const EdgeInsets.only(bottom: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Theme.of(context).dividerColor),
+                          side:
+                              BorderSide(color: Theme.of(context).dividerColor),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -276,7 +314,10 @@ class _OverviewTabState extends State<OverviewTab> {
                                   'Recorded: ${DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.parse(vital.recordedAt!))}',
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
-                                    color: Theme.of(context).textTheme.bodySmall?.color,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -299,8 +340,8 @@ class _OverviewTabState extends State<OverviewTab> {
                                 children: [
                                   _buildVitalItem('Temperature',
                                       '${vital.temperature ?? "--"} °F'),
-                                  _buildVitalItem('Weight',
-                                      '${vital.weight ?? "--"} lbs'),
+                                  _buildVitalItem(
+                                      'Weight', '${vital.weight ?? "--"} lbs'),
                                 ],
                               ),
                             ],
@@ -344,11 +385,14 @@ class _OverviewTabState extends State<OverviewTab> {
                           ),
                           trailing: order.createdAt != null
                               ? Text(
-                                  DateFormat('MMM dd').format(
-                                      DateTime.parse(order.createdAt!)),
+                                  DateFormat('MMM dd')
+                                      .format(DateTime.parse(order.createdAt!)),
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
-                                    color: Theme.of(context).textTheme.bodySmall?.color,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
                                   ),
                                 )
                               : null,
@@ -358,17 +402,22 @@ class _OverviewTabState extends State<OverviewTab> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      if (apt.status.toLowerCase() == 'pending' || apt.status.toLowerCase() == 'confirmed') ...[
+                      if (apt.status.toLowerCase() == 'pending' ||
+                          apt.status.toLowerCase() == 'confirmed') ...[
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => _cancelAppointment(context, apt),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: PremiumColors.danger,
-                              side: const BorderSide(color: PremiumColors.danger),
+                              side:
+                                  const BorderSide(color: PremiumColors.danger),
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                            child: Text('Cancel',
+                                style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -384,10 +433,13 @@ class _OverviewTabState extends State<OverviewTab> {
                               backgroundColor: PremiumColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
-                            child: Text('Reschedule', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                            child: Text('Reschedule',
+                                style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -399,10 +451,13 @@ class _OverviewTabState extends State<OverviewTab> {
                               backgroundColor: PremiumColors.secondary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
-                            child: Text('Check In (Video)', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                            child: Text('Check In (Video)',
+                                style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -413,7 +468,8 @@ class _OverviewTabState extends State<OverviewTab> {
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).cardColor,
-                      foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                      foregroundColor:
+                          Theme.of(context).textTheme.bodyLarge?.color,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -443,10 +499,16 @@ class _OverviewTabState extends State<OverviewTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Appointment'),
-        content: Text('Are you sure you want to cancel your appointment with Dr. ${apt.doctorName}?'),
+        content: Text(
+            'Are you sure you want to cancel your appointment with Dr. ${apt.doctorName}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes', style: TextStyle(color: PremiumColors.danger))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Yes',
+                  style: TextStyle(color: PremiumColors.danger))),
         ],
       ),
     );
@@ -457,10 +519,14 @@ class _OverviewTabState extends State<OverviewTab> {
       try {
         await _appointmentService.cancelAppointment(apt.id);
         await _loadData();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment cancelled.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Appointment cancelled.')));
       } catch (e) {
         setState(() => _isLoading = false);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to cancel appointment.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to cancel appointment.')));
       }
     }
   }
@@ -471,16 +537,316 @@ class _OverviewTabState extends State<OverviewTab> {
     try {
       await _appointmentService.checkInEncounter(apt.id);
       await _loadData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Checked in successfully.')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Checked in successfully.')));
     } catch (e) {
       setState(() => _isLoading = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to check in.')));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Failed to check in.')));
     }
   }
 
   void _showRescheduleDialog(BuildContext context, Appointment apt) {
-    // Basic stub for reschedule
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reschedule flow coming soon.')));
+    DateTime? selectedDate;
+    List<Map<String, dynamic>> slots = [];
+    Map<String, dynamic>? selectedSlot;
+    bool loadingSlots = false;
+    bool rescheduling = false;
+    final reasonController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> loadSlots(DateTime date) async {
+              setModalState(() {
+                loadingSlots = true;
+                slots = [];
+                selectedSlot = null;
+              });
+              try {
+                if (apt.doctorId != null) {
+                  final fetchedSlots = await _appointmentService
+                      .getAvailableSlots(apt.doctorId!, date);
+                  setModalState(() {
+                    slots = fetchedSlots;
+                  });
+                }
+              } catch (e) {
+                print(e);
+              } finally {
+                setModalState(() {
+                  loadingSlots = false;
+                });
+              }
+            }
+
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+              ),
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Reschedule Appointment',
+                      style: GoogleFonts.outfit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Dr. ${apt.doctorName ?? 'Unknown'}',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Select New Date',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: PremiumColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              DateTime.now().add(const Duration(days: 1)),
+                          firstDate: DateTime.now(),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 60)),
+                        );
+                        if (date != null) {
+                          setModalState(() => selectedDate = date);
+                          loadSlots(date);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          border:
+                              Border.all(color: Theme.of(context).dividerColor),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              selectedDate != null
+                                  ? DateFormat('EEEE, MMM dd, yyyy')
+                                      .format(selectedDate!)
+                                  : 'Tap to select a date',
+                              style: GoogleFonts.inter(fontSize: 16),
+                            ),
+                            const Icon(Icons.calendar_today,
+                                size: 20, color: PremiumColors.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    if (selectedDate != null) ...[
+                      Text(
+                        'Select Time Slot',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: PremiumColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (loadingSlots)
+                        const Center(child: CircularProgressIndicator())
+                      else if (slots.isEmpty)
+                        Text(
+                          'No available slots for this date.',
+                          style: GoogleFonts.inter(color: Colors.red),
+                        )
+                      else
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: slots.map((slot) {
+                            final isBooked = slot['isBooked'] == true;
+                            final isSelected = selectedSlot == slot;
+                            return InkWell(
+                              onTap: isBooked
+                                  ? null
+                                  : () {
+                                      setModalState(() {
+                                        selectedSlot = slot;
+                                      });
+                                    },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? PremiumColors.primary
+                                      : isBooked
+                                          ? Colors.grey[200]
+                                          : Colors.transparent,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? PremiumColors.primary
+                                        : isBooked
+                                            ? Colors.grey[300]!
+                                            : Theme.of(context).dividerColor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  slot['startTime'] ?? '',
+                                  style: GoogleFonts.inter(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : isBooked
+                                            ? Colors.grey[400]
+                                            : Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    decoration: isBooked
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      const SizedBox(height: 24),
+                    ],
+                    Text(
+                      'Reason (Optional)',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: PremiumColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter reason for rescheduling',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: selectedSlot == null || rescheduling
+                            ? null
+                            : () async {
+                                setModalState(() => rescheduling = true);
+                                try {
+                                  await _appointmentService
+                                      .rescheduleAppointment(
+                                    apt.id,
+                                    selectedDate!,
+                                    selectedSlot!['startTime'],
+                                    selectedSlot!['endTime'],
+                                    reasonController.text.trim().isEmpty
+                                        ? null
+                                        : reasonController.text.trim(),
+                                  );
+                                  if (mounted)
+                                    Navigator.pop(context); // Close modal
+                                  _loadData();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Appointment rescheduled successfully.')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  setModalState(() => rescheduling = false);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Failed to reschedule appointment.')),
+                                    );
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PremiumColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: rescheduling
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text(
+                                'Confirm Reschedule',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildSectionTitle(String title) {
@@ -543,7 +909,7 @@ class _OverviewTabState extends State<OverviewTab> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // KPI Grid
             Row(
               children: [
@@ -575,10 +941,10 @@ class _OverviewTabState extends State<OverviewTab> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
             Text(
-              "Today's / Tomorrow's Appointment",
+              _todayOrTomorrowTitle,
               style: GoogleFonts.outfit(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -586,7 +952,7 @@ class _OverviewTabState extends State<OverviewTab> {
             ),
             const SizedBox(height: 12),
             _buildTodayTomorrowAppointmentCard(isDark),
-            
+
             const SizedBox(height: 24),
             Text(
               'Next Appointments',
@@ -597,7 +963,7 @@ class _OverviewTabState extends State<OverviewTab> {
             ),
             const SizedBox(height: 12),
             _buildNextAppointmentsList(isDark),
-            
+
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -609,13 +975,18 @@ class _OverviewTabState extends State<OverviewTab> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (_latestVital != null && _getRiskLevel(_latestVital) != 'Normal')
+                if (_latestVital != null &&
+                    _getRiskLevel(_latestVital) != 'Normal')
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getRiskColor(_getRiskLevel(_latestVital)).withValues(alpha: 0.1),
+                      color: _getRiskColor(_getRiskLevel(_latestVital))
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _getRiskColor(_getRiskLevel(_latestVital)).withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: _getRiskColor(_getRiskLevel(_latestVital))
+                              .withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       'Status: ${_getRiskLevel(_latestVital)}',
@@ -688,13 +1059,15 @@ class _OverviewTabState extends State<OverviewTab> {
         child: Center(
           child: Text(
             'No appointments scheduled for today or tomorrow.',
-            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+            style: GoogleFonts.inter(
+                color: Theme.of(context).textTheme.bodySmall?.color),
           ),
         ),
       );
     }
     return GestureDetector(
-      onTap: () => _showAppointmentDetails(context, _todayOrTomorrowAppointment!),
+      onTap: () =>
+          _showAppointmentDetails(context, _todayOrTomorrowAppointment!),
       child: _buildAppointmentCard(_todayOrTomorrowAppointment!, isDark),
     );
   }
@@ -712,20 +1085,23 @@ class _OverviewTabState extends State<OverviewTab> {
         child: Center(
           child: Text(
             'No further upcoming appointments.',
-            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+            style: GoogleFonts.inter(
+                color: Theme.of(context).textTheme.bodySmall?.color),
           ),
         ),
       );
     }
 
     return Column(
-      children: nextAppts.map((apt) => Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: GestureDetector(
-          onTap: () => _showAppointmentDetails(context, apt),
-          child: _buildAppointmentCard(apt, isDark),
-        ),
-      )).toList(),
+      children: nextAppts
+          .map((apt) => Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: GestureDetector(
+                  onTap: () => _showAppointmentDetails(context, apt),
+                  child: _buildAppointmentCard(apt, isDark),
+                ),
+              ))
+          .toList(),
     );
   }
 
@@ -789,7 +1165,8 @@ class _OverviewTabState extends State<OverviewTab> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 14, color: PremiumColors.primary),
+                  const Icon(Icons.calendar_today,
+                      size: 14, color: PremiumColors.primary),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('MMM dd, yyyy').format(apt.appointmentDate),
@@ -799,10 +1176,12 @@ class _OverviewTabState extends State<OverviewTab> {
               ),
               Row(
                 children: [
-                  const Icon(Icons.access_time, size: 14, color: PremiumColors.primary),
+                  const Icon(Icons.access_time,
+                      size: 14, color: PremiumColors.primary),
                   const SizedBox(width: 4),
                   Text(
-                    DateFormat('hh:mm a').format(apt.appointmentDate), // using date as start time roughly
+                    DateFormat('hh:mm a').format(apt
+                        .appointmentDate), // using date as start time roughly
                     style: GoogleFonts.inter(fontSize: 13),
                   ),
                 ],
@@ -826,14 +1205,17 @@ class _OverviewTabState extends State<OverviewTab> {
         child: Center(
           child: Text(
             'No health data available.',
-            style: GoogleFonts.inter(color: Theme.of(context).textTheme.bodySmall?.color),
+            style: GoogleFonts.inter(
+                color: Theme.of(context).textTheme.bodySmall?.color),
           ),
         ),
       );
     }
 
     final v = _latestVital!;
-    final dateStr = v.recordedAt != null ? DateFormat('MMM dd').format(DateTime.parse(v.recordedAt!)) : 'Unknown';
+    final dateStr = v.recordedAt != null
+        ? DateFormat('MMM dd').format(DateTime.parse(v.recordedAt!))
+        : 'Unknown';
 
     return Container(
       decoration: BoxDecoration(
@@ -842,19 +1224,27 @@ class _OverviewTabState extends State<OverviewTab> {
       ),
       child: Column(
         children: [
-          _buildVitalRow('🩸', 'Blood Pressure', '${v.bloodPressureSystolic ?? "--"}/${v.bloodPressureDiastolic ?? "--"}', 'Last reading: $dateStr'),
+          _buildVitalRow(
+              '🩸',
+              'Blood Pressure',
+              '${v.bloodPressureSystolic ?? "--"}/${v.bloodPressureDiastolic ?? "--"}',
+              'Last reading: $dateStr'),
           const Divider(height: 1, indent: 16, endIndent: 16),
-          _buildVitalRow('❤️', 'Heart Rate', '${v.heartRate ?? "--"} bpm', 'Last reading: $dateStr'),
+          _buildVitalRow('❤️', 'Heart Rate', '${v.heartRate ?? "--"} bpm',
+              'Last reading: $dateStr'),
           const Divider(height: 1, indent: 16, endIndent: 16),
-          _buildVitalRow('🌡️', 'Temperature', '${v.temperature ?? "--"}', 'Last reading: $dateStr'),
+          _buildVitalRow('🌡️', 'Temperature', v.temperature ?? "--",
+              'Last reading: $dateStr'),
           const Divider(height: 1, indent: 16, endIndent: 16),
-          _buildVitalRow('⚖️', 'Weight', '${v.weight ?? "--"}', 'Last reading: $dateStr'),
+          _buildVitalRow(
+              '⚖️', 'Weight', v.weight ?? "--", 'Last reading: $dateStr'),
         ],
       ),
     );
   }
 
-  Widget _buildVitalRow(String emoji, String title, String value, String subtitle) {
+  Widget _buildVitalRow(
+      String emoji, String title, String value, String subtitle) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(

@@ -18,11 +18,20 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _filterStatus = '';
+  String _sortBy = 'dateDesc';
 
   List<Appointment> get _filteredAppointments {
-    List<Appointment> result = _appointments.where((apt) => apt.appointmentDate.isAfter(DateTime.now())).toList();
+    List<Appointment> result = List.from(_appointments);
     
-    result.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    if (_sortBy == 'dateDesc') {
+      result.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+    } else if (_sortBy == 'dateAsc') {
+      result.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    } else if (_sortBy == 'doctorAsc') {
+      result.sort((a, b) => (a.doctorName ?? '').compareTo(b.doctorName ?? ''));
+    } else if (_sortBy == 'doctorDesc') {
+      result.sort((a, b) => (b.doctorName ?? '').compareTo(a.doctorName ?? ''));
+    }
     
     if (_filterStatus.isNotEmpty) {
       result = result.where((apt) => apt.status.toLowerCase() == _filterStatus.toLowerCase()).toList();
@@ -93,109 +102,145 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
+          : CustomScrollView(
+              slivers: [
                 if (_topAppointments.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Text(
-                          'Upcoming Appointments',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: PremiumColors.primary,
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            'Upcoming Appointments',
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: PremiumColors.primary,
+                            ),
+                          ),
+                        ),
+                        ..._topAppointments.map((apt) => _buildNextAppointmentCard(apt)),
+                      ],
+                    ),
+                  ),
+                SliverToBoxAdapter(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        _buildFilterChip('All', ''),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Pending', 'Pending'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Confirmed', 'Confirmed'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Completed', 'Completed'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Cancelled', 'Cancelled'),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Search by doctor, specialty...',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade400),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _sortBy,
+                              onChanged: (value) => setState(() => _sortBy = value!),
+                              items: const [
+                                DropdownMenuItem(value: 'dateDesc', child: Text('Newest')),
+                                DropdownMenuItem(value: 'dateAsc', child: Text('Oldest')),
+                                DropdownMenuItem(value: 'doctorAsc', child: Text('Doc A-Z')),
+                                DropdownMenuItem(value: 'doctorDesc', child: Text('Doc Z-A')),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _filteredAppointments.isEmpty
+                    ? const SliverFillRemaining(
+                        child: Center(child: Text('No appointments found')),
+                      )
+                    : SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final apt = _filteredAppointments[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16)),
+                                elevation: 2,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.all(16),
+                                  title: Text('Dr. ${apt.doctorName ?? 'Unknown'}',
+                                      style:
+                                          GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          DateFormat('MMM dd, yyyy - hh:mm a')
+                                              .format(apt.appointmentDate),
+                                          style: GoogleFonts.inter(
+                                              color: PremiumColors.primary)),
+                                      const SizedBox(height: 4),
+                                      Text('Status: ${apt.status.toUpperCase()}',
+                                          style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.w500,
+                                              color: (apt.status.toLowerCase() == 'completed' ||
+                                                      apt.status.toLowerCase() == 'confirmed' ||
+                                                      apt.status.toLowerCase() == 'scheduled' ||
+                                                      apt.status.toLowerCase() == 'complete')
+                                                  ? Colors.green
+                                                  : Colors.orange)),
+                                    ],
+                                  ),
+                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                                  onTap: () => _showAppointmentDetails(context, apt),
+                                ),
+                              );
+                            },
+                            childCount: _filteredAppointments.length,
                           ),
                         ),
                       ),
-                      ..._topAppointments.map((apt) => _buildNextAppointmentCard(apt)),
-                    ],
-                  ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', ''),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Pending', 'Pending'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Confirmed', 'Confirmed'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Completed', 'Completed'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Cancelled', 'Cancelled'),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search by doctor, specialty, or status...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: _filteredAppointments.isEmpty
-                      ? const Center(child: Text('No appointments found'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _filteredAppointments.length,
-                          itemBuilder: (context, index) {
-                            final apt = _filteredAppointments[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      elevation: 2,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text('Dr. ${apt.doctorName ?? 'Unknown'}',
-                            style:
-                                GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
-                                DateFormat('MMM dd, yyyy - hh:mm a')
-                                    .format(apt.appointmentDate),
-                                style: GoogleFonts.inter(
-                                    color: PremiumColors.primary)),
-                            const SizedBox(height: 4),
-                            Text('Status: ${apt.status.toUpperCase()}',
-                                style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                    color: (apt.status.toLowerCase() == 'completed' ||
-                                            apt.status.toLowerCase() == 'confirmed' ||
-                                            apt.status.toLowerCase() == 'scheduled' ||
-                                            apt.status.toLowerCase() == 'complete')
-                                        ? Colors.green
-                                        : Colors.orange)),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => _showAppointmentDetails(context, apt),
-                      ),
-                    );
-                  },
-                ),
-                    ),
-                  ],
-                ),
+              ],
+            ),
     );
   }
 
@@ -464,7 +509,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                           ),
                         ),
                       ],
-                      if (apt.status.toLowerCase() == 'confirmed') ...[
+                      if (apt.type == 'Video Consultation' && (apt.status.toLowerCase() == 'confirmed' || apt.status.toLowerCase() == 'pending') && apt.encounterId == null) ...[
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => _checkIn(context, apt),
@@ -476,6 +521,25 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                               elevation: 0,
                             ),
                             child: Text('Check In (Video)', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                      if (apt.type == 'Video Consultation' && apt.encounterId != null && apt.status.toLowerCase() != 'completed') ...[
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Join room functionality
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Join Room coming soon.')));
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: PremiumColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            child: Text('Join Room', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -684,8 +748,275 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   }
 
   void _showRescheduleDialog(BuildContext context, Appointment apt) {
-    // Basic stub for reschedule
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reschedule flow coming soon.')));
+    DateTime? selectedDate;
+    List<Map<String, dynamic>> slots = [];
+    Map<String, dynamic>? selectedSlot;
+    bool loadingSlots = false;
+    bool rescheduling = false;
+    final reasonController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> loadSlots(DateTime date) async {
+              setModalState(() {
+                loadingSlots = true;
+                slots = [];
+                selectedSlot = null;
+              });
+              try {
+                if (apt.doctorId != null) {
+                  final fetchedSlots = await _appointmentService.getAvailableSlots(apt.doctorId!, date);
+                  setModalState(() {
+                    slots = fetchedSlots;
+                  });
+                }
+              } catch (e) {
+                print(e);
+              } finally {
+                setModalState(() {
+                  loadingSlots = false;
+                });
+              }
+            }
+
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+              ),
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Reschedule Appointment',
+                      style: GoogleFonts.outfit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Dr. ${apt.doctorName ?? 'Unknown'}',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Select New Date',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: PremiumColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now().add(const Duration(days: 1)),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 60)),
+                        );
+                        if (date != null) {
+                          setModalState(() => selectedDate = date);
+                          loadSlots(date);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Theme.of(context).dividerColor),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              selectedDate != null
+                                  ? DateFormat('EEEE, MMM dd, yyyy').format(selectedDate!)
+                                  : 'Tap to select a date',
+                              style: GoogleFonts.inter(fontSize: 16),
+                            ),
+                            const Icon(Icons.calendar_today, size: 20, color: PremiumColors.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    if (selectedDate != null) ...[
+                      Text(
+                        'Select Time Slot',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: PremiumColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (loadingSlots)
+                        const Center(child: CircularProgressIndicator())
+                      else if (slots.isEmpty)
+                        Text(
+                          'No available slots for this date.',
+                          style: GoogleFonts.inter(color: Colors.red),
+                        )
+                      else
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: slots.map((slot) {
+                            final isBooked = slot['isBooked'] == true;
+                            final isSelected = selectedSlot == slot;
+                            return InkWell(
+                              onTap: isBooked
+                                  ? null
+                                  : () {
+                                      setModalState(() {
+                                        selectedSlot = slot;
+                                      });
+                                    },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? PremiumColors.primary
+                                      : isBooked
+                                          ? Colors.grey[200]
+                                          : Colors.transparent,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? PremiumColors.primary
+                                        : isBooked
+                                            ? Colors.grey[300]!
+                                            : Theme.of(context).dividerColor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  slot['startTime'] ?? '',
+                                  style: GoogleFonts.inter(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : isBooked
+                                            ? Colors.grey[400]
+                                            : Theme.of(context).textTheme.bodyLarge?.color,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    decoration: isBooked ? TextDecoration.lineThrough : null,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      const SizedBox(height: 24),
+                    ],
+                    Text(
+                      'Reason (Optional)',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: PremiumColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter reason for rescheduling',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: selectedSlot == null || rescheduling
+                            ? null
+                            : () async {
+                                setModalState(() => rescheduling = true);
+                                try {
+                                  await _appointmentService.rescheduleAppointment(
+                                    apt.id,
+                                    selectedDate!,
+                                    selectedSlot!['startTime'],
+                                    selectedSlot!['endTime'],
+                                    reasonController.text.trim().isEmpty ? null : reasonController.text.trim(),
+                                  );
+                                  Navigator.pop(context); // Close modal
+                                  _loadAppointments();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Appointment rescheduled successfully.')),
+                                  );
+                                } catch (e) {
+                                  setModalState(() => rescheduling = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Failed to reschedule appointment.')),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PremiumColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: rescheduling
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text(
+                                'Confirm Reschedule',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildSectionTitle(String title) {

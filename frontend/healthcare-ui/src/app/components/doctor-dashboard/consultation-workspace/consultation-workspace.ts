@@ -273,15 +273,29 @@ Chart.register(...registerables);
               <button (click)="addPrescription()" class="btn btn-primary w-full btn-xs" [disabled]="!newPrescriptionForm.name">Add Prescription</button>
             </div>
             
-            <h4 class="text-sm font-semibold mt-4 mb-2 text-muted">Current Prescriptions</h4>
-            <div *ngIf="currentPrescriptions.length === 0" class="text-xs text-muted text-center p-4">No prescriptions added yet.</div>
-            <div *ngIf="currentPrescriptions.length > 0" class="flex-col gap-2">
-               <div *ngFor="let p of currentPrescriptions; let i = index" class="inner-card p-2 flex justify-between items-center text-sm">
-                  <div>
-                    <strong>{{ p.name }}</strong> {{ p.dosage }}<br>
-                    <span class="text-xs text-muted">{{ p.frequency }} for {{ p.duration }}</span>
+            <h4 class="text-sm font-semibold mt-4 mb-3 text-muted">Current Prescriptions</h4>
+            <div *ngIf="currentPrescriptions.length === 0" class="inner-card p-4 text-center text-muted text-xs border-dashed">
+              No prescriptions added yet.
+            </div>
+            <div *ngIf="currentPrescriptions.length > 0" class="flex-col gap-3">
+               <div *ngFor="let p of currentPrescriptions; let i = index" class="inner-card p-3 relative border-l-2 border-primary" style="background: rgba(255,255,255,0.03);">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xl">💊</span>
+                        <h5 class="m-0 font-bold text-main" style="font-size: 1rem;">{{ p.name }}</h5>
+                        <span class="badge badge-primary text-xs">{{ p.dosage }}</span>
+                      </div>
+                      <div class="text-xs text-muted flex items-center gap-1 mt-2">
+                        <span class="text-primary">🕒</span> {{ p.frequency }}
+                        <span class="mx-1">•</span> 
+                        <span>⏳ {{ p.duration }}</span>
+                      </div>
+                    </div>
+                    <button (click)="currentPrescriptions.splice(i, 1)" class="btn hover:bg-danger hover:text-white transition" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                      ✕
+                    </button>
                   </div>
-                  <button (click)="currentPrescriptions.splice(i, 1)" class="btn btn-danger btn-xs p-1">X</button>
                </div>
             </div>
           </div>
