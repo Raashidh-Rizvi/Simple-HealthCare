@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../main.dart';
 import '../auth/auth_provider.dart';
-import '../auth/login_screen.dart';
 import 'tabs/overview_tab.dart';
 import '../appointments/my_appointments_screen.dart';
 import '../records/health_records_screen.dart';
@@ -73,7 +72,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           IconButton(
             icon: Stack(
               children: [
-                Icon(Icons.notifications_outlined, color: PremiumColors.primary),
+                const Icon(Icons.notifications_outlined, color: PremiumColors.primary),
                 if (_unreadNotifications > 0)
                   Positioned(
                     right: 0,

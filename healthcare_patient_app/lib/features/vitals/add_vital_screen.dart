@@ -4,7 +4,6 @@ import '../../core/services/vital_service.dart';
 import '../../shared/models/vital_model.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/custom_text_field.dart';
-import '../../main.dart';
 
 class AddVitalScreen extends StatefulWidget {
   final int appointmentId;

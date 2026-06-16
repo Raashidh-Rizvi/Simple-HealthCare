@@ -1,0 +1,1 @@
+TRUNCATE TABLE "AuditLogs", "Notifications", "Orders", "Vitals", "Encounters", "Appointments", "CareProviders", "ScheduleSlots", "DoctorBlockedDates", "DoctorAvailabilities", "Doctors", "Patients", "Users" RESTART IDENTITY CASCADE;

@@ -201,8 +201,9 @@ class _VitalHistoryScreenState extends State<VitalHistoryScreen> {
     if (vital.heartRate != null && vital.heartRate!.isNotEmpty) {
       final hr = int.tryParse(vital.heartRate!);
       if (hr != null) {
-        if (hr > 120 || hr < 50) criticalCount++;
-        else if (hr > 100 || hr < 60) warningCount++;
+        if (hr > 120 || hr < 50) {
+          criticalCount++;
+        } else if (hr > 100 || hr < 60) warningCount++;
       }
     }
 
@@ -211,8 +212,9 @@ class _VitalHistoryScreenState extends State<VitalHistoryScreen> {
       final temp = double.tryParse(vital.temperature!);
       if (temp != null) {
         // Assume celsius
-        if (temp >= 39.5 || temp <= 35.0) criticalCount++;
-        else if (temp >= 38.0 || temp <= 36.0) warningCount++;
+        if (temp >= 39.5 || temp <= 35.0) {
+          criticalCount++;
+        } else if (temp >= 38.0 || temp <= 36.0) warningCount++;
       }
     }
 

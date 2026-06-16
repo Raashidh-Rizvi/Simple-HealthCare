@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../main.dart';
-import '../../../main.dart';
 import '../../../core/services/appointment_service.dart';
 import '../../../shared/models/appointment_model.dart';
 import '../../../shared/models/vital_model.dart';
@@ -519,14 +518,16 @@ class _OverviewTabState extends State<OverviewTab> {
       try {
         await _appointmentService.cancelAppointment(apt.id);
         await _loadData();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Appointment cancelled.')));
+        }
       } catch (e) {
         setState(() => _isLoading = false);
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Failed to cancel appointment.')));
+        }
       }
     }
   }
@@ -537,14 +538,16 @@ class _OverviewTabState extends State<OverviewTab> {
     try {
       await _appointmentService.checkInEncounter(apt.id);
       await _loadData();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Checked in successfully.')));
+      }
     } catch (e) {
       setState(() => _isLoading = false);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Failed to check in.')));
+      }
     }
   }
 
@@ -794,8 +797,9 @@ class _OverviewTabState extends State<OverviewTab> {
                                         ? null
                                         : reasonController.text.trim(),
                                   );
-                                  if (mounted)
+                                  if (mounted) {
                                     Navigator.pop(context); // Close modal
+                                  }
                                   _loadData();
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(

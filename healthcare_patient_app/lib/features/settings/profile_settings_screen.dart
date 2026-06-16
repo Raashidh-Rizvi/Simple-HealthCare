@@ -139,7 +139,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: ['Male', 'Female', 'Other'].contains(_gender) ? _gender : null,
+                      initialValue: ['Male', 'Female', 'Other'].contains(_gender) ? _gender : null,
                       decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
                       items: ['Male', 'Female', 'Other'].map((String value) {
                         return DropdownMenuItem<String>(
@@ -158,7 +158,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               const SizedBox(height: 16),
               
               DropdownButtonFormField<String>(
-                value: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(_bloodGroup) ? _bloodGroup : null,
+                initialValue: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].contains(_bloodGroup) ? _bloodGroup : null,
                 decoration: const InputDecoration(labelText: 'Blood Group', border: OutlineInputBorder()),
                 items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((String value) {
                   return DropdownMenuItem<String>(
