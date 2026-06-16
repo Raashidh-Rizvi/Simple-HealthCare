@@ -106,46 +106,54 @@ namespace Healthcare.API.Models
         public string? Details { get; set; }
     }
 
-    public class Vital
+    public enum MetricType
+    {
+        BP_SYS,
+        BP_DIA,
+        SPO2,
+        GLUCOSE,
+        HEART_RATE,
+        WEIGHT,
+        TEMP,
+        RESPIRATORY_RATE
+    }
+
+    public class PatientVital
     {
         public int Id { get; set; }
-        public int? EncounterId { get; set; }
-        public Encounter? Encounter { get; set; }
         
         public int PatientId { get; set; }
         public Patient? Patient { get; set; }
         
-        public int? RecordedById { get; set; }
-        public User? RecordedBy { get; set; }
+        public int? EncounterId { get; set; }
+        public Encounter? Encounter { get; set; }
         
-        public decimal? HeightCm { get; set; }
-        public decimal? WeightKg { get; set; }
-        public decimal? BMI { get; set; }
-        public decimal? Temperature { get; set; }
-        
-        public int? HeartRate { get; set; }
-        public int? RespiratoryRate { get; set; }
-        public int? OxygenSaturation { get; set; }
-        
-        public int? BloodPressureSystolic { get; set; }
-        public int? BloodPressureDiastolic { get; set; }
-        
-        public decimal? BloodSugar { get; set; }
-        public int? PainScore { get; set; }
-        
-        public string? Notes { get; set; }
-        
-        public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
-        
-        public int? VerifiedById { get; set; }
-        public User? VerifiedBy { get; set; }
-        public DateTime? VerifiedAt { get; set; }
-        
-        public string Status { get; set; } = "Pending"; // Pending, Verified, Rejected
-        public string Source { get; set; } = "Clinical"; // Clinical, Patient Submitted
+        public MetricType MetricType { get; set; }
+        public decimal Value { get; set; }
+        public required string Unit { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string? DeviceSource { get; set; }
+        public string RecordedBy { get; set; } = "System"; // Patient/Doctor/Device/System
+        public string? Metadata { get; set; } // JSON string
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    public class PatientVitalAnalytics
+    {
+        public int Id { get; set; }
+        
+        public int PatientId { get; set; }
+        public Patient? Patient { get; set; }
+        
+        public MetricType MetricType { get; set; }
+        
+        public decimal? RollingAverage7Day { get; set; }
+        public decimal? TrendSlope { get; set; }
+        public decimal? DeviationFromBaseline { get; set; }
+        public decimal? VariabilityIndex { get; set; }
+        
+        public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class Encounter
@@ -167,7 +175,7 @@ namespace Healthcare.API.Models
         public string? Notes { get; set; }
         public string? Diagnosis { get; set; }
 
-        public ICollection<Vital> Vitals { get; set; } = new List<Vital>();
+        public ICollection<PatientVital> Vitals { get; set; } = new List<PatientVital>();
         public ICollection<Order> Orders { get; set; } = new List<Order>();
     }
 

@@ -8,11 +8,9 @@ namespace Healthcare.API.Services
 {
     public interface IVitalService
     {
-        Task<VitalResponseDto> CreateVitalAsync(CreateVitalDto dto, int recordedByUserId, string role);
-        Task<VitalResponseDto> GetVitalAsync(int id);
-        Task<IEnumerable<VitalResponseDto>> GetPatientVitalsAsync(int patientId, string? sourceFilter = null, int limit = 50);
-        Task<VitalResponseDto> UpdateVitalAsync(int id, UpdateVitalDto dto, int updatedByUserId);
-        Task<VitalResponseDto> VerifyVitalAsync(int id, int verifiedByUserId);
+        Task<PatientVitalResponseDto> RecordVitalAsync(RecordVitalDto dto, string role, int? recordedByUserId);
+        Task<VitalVisualizationDto> GetPatientVitalsAsync(int patientId, string metric, string? range = "7d");
+        Task<IEnumerable<PatientVitalResponseDto>> GetLatestVitalsAsync(int patientId);
     }
 
     public class VitalService : IVitalService
@@ -24,192 +22,193 @@ namespace Healthcare.API.Services
             _context = context;
         }
 
-        public async Task<VitalResponseDto> CreateVitalAsync(CreateVitalDto dto, int recordedByUserId, string role)
+        public async Task<PatientVitalResponseDto> RecordVitalAsync(RecordVitalDto dto, string role, int? recordedByUserId)
         {
-            ValidateVitals(dto.HeightCm, dto.WeightKg, dto.Temperature, dto.HeartRate, dto.RespiratoryRate, dto.OxygenSaturation, dto.BloodPressureSystolic, dto.BloodPressureDiastolic, dto.BloodSugar, dto.PainScore);
+            // 1. Validation Layer
+            ValidateVital(dto.MetricType, dto.Value, dto.Timestamp);
 
-            var vital = new Vital
+            var patientExists = await _context.Patients.AnyAsync(p => p.Id == dto.PatientId);
+            if (!patientExists) throw new ValidationException("Patient ID does not exist.");
+
+            // Integrity Rule: Reject duplicate entries within 2 minutes
+            var duplicateWindowStart = dto.Timestamp.AddMinutes(-2);
+            var duplicateWindowEnd = dto.Timestamp.AddMinutes(2);
+            var isDuplicate = await _context.PatientVitals.AnyAsync(v => 
+                v.PatientId == dto.PatientId && 
+                v.MetricType == dto.MetricType && 
+                v.Timestamp >= duplicateWindowStart && 
+                v.Timestamp <= duplicateWindowEnd && 
+                v.Value == dto.Value);
+                
+            if (isDuplicate) throw new ValidationException("Duplicate entry detected within short time window.");
+
+            // 2. Store Raw Vital (Append-only)
+            var vital = new PatientVital
             {
-                EncounterId = dto.EncounterId == 0 ? null : dto.EncounterId,
                 PatientId = dto.PatientId,
-                RecordedById = recordedByUserId,
-                HeightCm = dto.HeightCm,
-                WeightKg = dto.WeightKg,
-                Temperature = dto.Temperature,
-                HeartRate = dto.HeartRate,
-                RespiratoryRate = dto.RespiratoryRate,
-                OxygenSaturation = dto.OxygenSaturation,
-                BloodPressureSystolic = dto.BloodPressureSystolic,
-                BloodPressureDiastolic = dto.BloodPressureDiastolic,
-                BloodSugar = dto.BloodSugar,
-                PainScore = dto.PainScore,
-                Notes = dto.Notes,
-                Source = dto.IsHomeReading ? "Patient Submitted" : "Clinical",
-                Status = "Pending",
-                RecordedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                EncounterId = dto.EncounterId == 0 ? null : dto.EncounterId,
+                MetricType = dto.MetricType,
+                Value = dto.Value,
+                Unit = dto.Unit,
+                Timestamp = dto.Timestamp,
+                DeviceSource = dto.DeviceSource,
+                Metadata = dto.Metadata,
+                RecordedBy = role == "Patient" ? "Patient" : (role == "System" || role == "Device" ? role : "Doctor")
             };
 
-            CalculateBmi(vital);
-
-            _context.Vitals.Add(vital);
+            _context.PatientVitals.Add(vital);
             
+            // 3. Prepare data for AI layer
+            await ComputeAndSaveAnalytics(dto.PatientId, dto.MetricType, dto.Timestamp, dto.Value);
+
             // Audit Log
             _context.AuditLogs.Add(new AuditLog
             {
-                EntityName = "Vital",
-                EntityId = 0, // Will be set after save or just logged as creation
+                EntityName = "PatientVital",
+                EntityId = 0,
                 Action = "Created",
-                PerformedByUserId = recordedByUserId,
+                PerformedByUserId = recordedByUserId ?? 0,
                 Timestamp = DateTime.UtcNow,
-                Details = $"Source: {vital.Source}"
+                Details = $"Recorded {dto.MetricType} = {dto.Value}"
             });
 
             await _context.SaveChangesAsync();
-
-            return await GetVitalAsync(vital.Id);
-        }
-
-        public async Task<VitalResponseDto> GetVitalAsync(int id)
-        {
-            var vital = await _context.Vitals
-                .Include(v => v.Patient).ThenInclude(p => p!.User)
-                .Include(v => v.RecordedBy)
-                .Include(v => v.VerifiedBy)
-                .FirstOrDefaultAsync(v => v.Id == id);
-
-            if (vital == null) throw new KeyNotFoundException("Vital not found");
 
             return MapToResponse(vital);
         }
 
-        public async Task<IEnumerable<VitalResponseDto>> GetPatientVitalsAsync(int patientId, string? sourceFilter = null, int limit = 50)
+        public async Task<VitalVisualizationDto> GetPatientVitalsAsync(int patientId, string metricStr, string? range = "7d")
         {
-            var query = _context.Vitals
-                .Include(v => v.Patient).ThenInclude(p => p!.User)
-                .Include(v => v.RecordedBy)
-                .Include(v => v.VerifiedBy)
-                .Where(v => v.PatientId == patientId);
+            if (!Enum.TryParse<MetricType>(metricStr, true, out var metricType))
+                throw new ArgumentException("Invalid metric type");
 
-            if (!string.IsNullOrEmpty(sourceFilter))
+            var query = _context.PatientVitals
+                .Where(v => v.PatientId == patientId && v.MetricType == metricType);
+
+            if (range == "7d")
             {
-                query = query.Where(v => v.Source == sourceFilter);
+                var startDate = DateTime.UtcNow.AddDays(-7);
+                query = query.Where(v => v.Timestamp >= startDate);
+            }
+            else if (range == "30d")
+            {
+                var startDate = DateTime.UtcNow.AddDays(-30);
+                query = query.Where(v => v.Timestamp >= startDate);
             }
 
             var vitals = await query
-                .OrderByDescending(v => v.RecordedAt)
-                .Take(limit)
+                .OrderBy(v => v.Timestamp)
+                .Select(v => new VitalDataPoint { Timestamp = v.Timestamp, Value = v.Value })
                 .ToListAsync();
 
-            return vitals.Select(MapToResponse);
+            return new VitalVisualizationDto
+            {
+                PatientId = patientId,
+                Metric = metricStr,
+                DataPoints = vitals
+            };
         }
 
-        public async Task<VitalResponseDto> UpdateVitalAsync(int id, UpdateVitalDto dto, int updatedByUserId)
+        public async Task<IEnumerable<PatientVitalResponseDto>> GetLatestVitalsAsync(int patientId)
         {
-            var vital = await _context.Vitals.FindAsync(id);
-            if (vital == null) throw new KeyNotFoundException("Vital not found");
+            // Get the most recent reading for each metric type
+            var latestVitals = await _context.PatientVitals
+                .Where(v => v.PatientId == patientId)
+                .GroupBy(v => v.MetricType)
+                .Select(g => g.OrderByDescending(v => v.Timestamp).FirstOrDefault())
+                .ToListAsync();
 
-            ValidateVitals(dto.HeightCm, dto.WeightKg, dto.Temperature, dto.HeartRate, dto.RespiratoryRate, dto.OxygenSaturation, dto.BloodPressureSystolic, dto.BloodPressureDiastolic, dto.BloodSugar, dto.PainScore);
-
-            vital.HeightCm = dto.HeightCm ?? vital.HeightCm;
-            vital.WeightKg = dto.WeightKg ?? vital.WeightKg;
-            vital.Temperature = dto.Temperature ?? vital.Temperature;
-            vital.HeartRate = dto.HeartRate ?? vital.HeartRate;
-            vital.RespiratoryRate = dto.RespiratoryRate ?? vital.RespiratoryRate;
-            vital.OxygenSaturation = dto.OxygenSaturation ?? vital.OxygenSaturation;
-            vital.BloodPressureSystolic = dto.BloodPressureSystolic ?? vital.BloodPressureSystolic;
-            vital.BloodPressureDiastolic = dto.BloodPressureDiastolic ?? vital.BloodPressureDiastolic;
-            vital.BloodSugar = dto.BloodSugar ?? vital.BloodSugar;
-            vital.PainScore = dto.PainScore ?? vital.PainScore;
-            vital.Notes = dto.Notes ?? vital.Notes;
-            
-            vital.UpdatedAt = DateTime.UtcNow;
-
-            CalculateBmi(vital);
-
-            _context.AuditLogs.Add(new AuditLog
-            {
-                EntityName = "Vital",
-                EntityId = vital.Id,
-                Action = "Updated",
-                PerformedByUserId = updatedByUserId,
-                Timestamp = DateTime.UtcNow
-            });
-
-            await _context.SaveChangesAsync();
-
-            return await GetVitalAsync(vital.Id);
+            return latestVitals.Where(v => v != null).Select(v => MapToResponse(v!));
         }
 
-        public async Task<VitalResponseDto> VerifyVitalAsync(int id, int verifiedByUserId)
+        private void ValidateVital(MetricType metric, decimal value, DateTime timestamp)
         {
-            var vital = await _context.Vitals.FindAsync(id);
-            if (vital == null) throw new KeyNotFoundException("Vital not found");
+            if (timestamp > DateTime.UtcNow.AddMinutes(5)) // 5 min buffer
+                throw new ValidationException("Timestamp cannot be in the future");
 
-            vital.Status = "Verified";
-            vital.VerifiedById = verifiedByUserId;
-            vital.VerifiedAt = DateTime.UtcNow;
-            vital.UpdatedAt = DateTime.UtcNow;
-
-            _context.AuditLogs.Add(new AuditLog
+            switch (metric)
             {
-                EntityName = "Vital",
-                EntityId = vital.Id,
-                Action = "Verified",
-                PerformedByUserId = verifiedByUserId,
-                Timestamp = DateTime.UtcNow
-            });
-
-            await _context.SaveChangesAsync();
-            return await GetVitalAsync(vital.Id);
-        }
-
-        private void CalculateBmi(Vital vital)
-        {
-            if (vital.HeightCm.HasValue && vital.WeightKg.HasValue && vital.HeightCm.Value > 0)
-            {
-                var heightMeters = vital.HeightCm.Value / 100m;
-                vital.BMI = Math.Round(vital.WeightKg.Value / (heightMeters * heightMeters), 2);
+                case MetricType.SPO2:
+                    if (value < 0 || value > 100) throw new ValidationException("SpO2 must be between 0 and 100");
+                    break;
+                case MetricType.BP_SYS:
+                    if (value < 50 || value > 250) throw new ValidationException("BP systolic must be between 50 and 250");
+                    break;
+                case MetricType.BP_DIA:
+                    if (value < 30 || value > 150) throw new ValidationException("BP diastolic must be between 30 and 150");
+                    break;
+                case MetricType.HEART_RATE:
+                    if (value < 30 || value > 220) throw new ValidationException("Heart rate must be between 30 and 220");
+                    break;
+                case MetricType.GLUCOSE:
+                    if (value < 0 || value > 1000) throw new ValidationException("Glucose must be within medically realistic range");
+                    break;
+                case MetricType.TEMP:
+                    if (value < 30 || value > 45) throw new ValidationException("Temperature must be between 30C and 45C");
+                    break;
             }
         }
 
-        private void ValidateVitals(decimal? height, decimal? weight, decimal? temp, int? hr, int? rr, int? o2, int? bps, int? bpd, decimal? sugar, int? pain)
+        private async Task ComputeAndSaveAnalytics(int patientId, MetricType metricType, DateTime newTimestamp, decimal newValue)
         {
-            if (height.HasValue && (height < 50 || height > 250)) throw new ValidationException("Height must be between 50cm and 250cm");
-            if (weight.HasValue && (weight < 1 || weight > 500)) throw new ValidationException("Weight must be between 1kg and 500kg");
-            if (hr.HasValue && (hr < 20 || hr > 250)) throw new ValidationException("Heart rate must be between 20 and 250");
-            if (temp.HasValue && (temp < 30 || temp > 45)) throw new ValidationException("Temperature must be between 30°C and 45°C");
-            if (o2.HasValue && (o2 < 50 || o2 > 100)) throw new ValidationException("Oxygen saturation must be between 50% and 100%");
-            if (pain.HasValue && (pain < 0 || pain > 10)) throw new ValidationException("Pain score must be between 0 and 10");
+            // Simple baseline calculation based on last 30 days
+            var last30Days = DateTime.UtcNow.AddDays(-30);
+            var historicalVitals = await _context.PatientVitals
+                .Where(v => v.PatientId == patientId && v.MetricType == metricType && v.Timestamp >= last30Days)
+                .OrderBy(v => v.Timestamp)
+                .ToListAsync();
+
+            var allValues = historicalVitals.Select(v => v.Value).ToList();
+            allValues.Add(newValue);
+
+            var last7DaysValues = historicalVitals
+                .Where(v => v.Timestamp >= DateTime.UtcNow.AddDays(-7))
+                .Select(v => v.Value).ToList();
+            last7DaysValues.Add(newValue);
+
+            decimal? rollingAvg7Day = last7DaysValues.Any() ? last7DaysValues.Average() : null;
+            decimal? baseline = allValues.Any() ? allValues.Average() : null;
+            decimal? deviation = baseline.HasValue ? newValue - baseline.Value : null;
+            
+            decimal? trendSlope = null;
+            if (last7DaysValues.Count > 1)
+            {
+                // simplified slope based on first and last in 7 day window
+                var firstDate = historicalVitals.FirstOrDefault(v => v.Timestamp >= DateTime.UtcNow.AddDays(-7))?.Timestamp ?? DateTime.UtcNow.AddDays(-7);
+                var daysDiff = (decimal)(newTimestamp - firstDate).TotalDays;
+                if (daysDiff > 0)
+                {
+                    trendSlope = (newValue - last7DaysValues.First()) / daysDiff;
+                }
+            }
+
+            var analytics = new PatientVitalAnalytics
+            {
+                PatientId = patientId,
+                MetricType = metricType,
+                RollingAverage7Day = rollingAvg7Day,
+                TrendSlope = trendSlope,
+                DeviationFromBaseline = deviation,
+                VariabilityIndex = 0 // Placeholder for future complex computation
+            };
+            
+            _context.PatientVitalAnalytics.Add(analytics);
         }
 
-        private VitalResponseDto MapToResponse(Vital v)
+        private PatientVitalResponseDto MapToResponse(PatientVital v)
         {
-            return new VitalResponseDto
+            return new PatientVitalResponseDto
             {
                 Id = v.Id,
-                EncounterId = v.EncounterId,
                 PatientId = v.PatientId,
-                PatientName = v.Patient?.User != null ? $"{v.Patient.User.FirstName} {v.Patient.User.LastName}" : "Unknown",
-                RecordedByName = v.RecordedBy != null ? $"{v.RecordedBy.FirstName} {v.RecordedBy.LastName}" : "System",
-                HeightCm = v.HeightCm,
-                WeightKg = v.WeightKg,
-                BMI = v.BMI,
-                Temperature = v.Temperature,
-                HeartRate = v.HeartRate,
-                RespiratoryRate = v.RespiratoryRate,
-                OxygenSaturation = v.OxygenSaturation,
-                BloodPressureSystolic = v.BloodPressureSystolic,
-                BloodPressureDiastolic = v.BloodPressureDiastolic,
-                BloodSugar = v.BloodSugar,
-                PainScore = v.PainScore,
-                Notes = v.Notes,
-                RecordedAt = v.RecordedAt,
-                VerifiedByName = v.VerifiedBy != null ? $"{v.VerifiedBy.FirstName} {v.VerifiedBy.LastName}" : null,
-                VerifiedAt = v.VerifiedAt,
-                Status = v.Status,
-                Source = v.Source
+                EncounterId = v.EncounterId,
+                MetricType = v.MetricType.ToString(),
+                Value = v.Value,
+                Unit = v.Unit,
+                Timestamp = v.Timestamp,
+                DeviceSource = v.DeviceSource,
+                RecordedBy = v.RecordedBy,
+                CreatedAt = v.CreatedAt
             };
         }
     }

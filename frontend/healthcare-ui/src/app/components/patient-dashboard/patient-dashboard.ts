@@ -375,7 +375,7 @@ Chart.register(...registerables);
                 <div *ngIf="vitalsHistory.length === 0" class="text-center text-muted text-xs py-4">
                   No history available.
                 </div>
-                <div *ngFor="let vital of vitalsHistory" class="inner-card mb-3 p-3 cursor-pointer hover-lift" [style.border-left]="getRiskBorder(vital)" (click)="viewVitalDetails(vital)">
+                <div *ngFor="let vital of vitalsHistory.slice(0, 50)" class="inner-card mb-3 p-3 cursor-pointer hover-lift" [style.border-left]="getRiskBorder(vital)" (click)="viewVitalDetails(vital)">
                   <div class="flex justify-between text-xs text-muted mb-2">
                     <span>{{ vital.recordedAt | date:'medium' }}</span>
                     <div class="flex gap-2 items-center">
@@ -395,6 +395,9 @@ Chart.register(...registerables);
                     <div>SpO2: {{ vital.oxygenSaturation ? vital.oxygenSaturation + '%' : 'Not added' }}</div>
                   </div>
                   <div *ngIf="vital.status === 'Verified'" class="text-xs text-success mt-2">✓ Verified by Doctor</div>
+                </div>
+                <div *ngIf="vitalsHistory.length > 50" class="text-center text-muted text-xs py-2">
+                  Showing top 50 of {{ vitalsHistory.length }} readings.
                 </div>
               </div>
             </div>
@@ -1100,6 +1103,10 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   lineChartData: ChartConfiguration['data'] = { datasets: [], labels: [] };
   lineChartOptions: ChartConfiguration['options'] = {
     responsive: true, maintainAspectRatio: false,
+    elements: {
+      point: { radius: 0, hitRadius: 10, hoverRadius: 5 },
+      line: { borderWidth: 2 }
+    },
     scales: { y: { position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false } } }
   };
   lineChartType: ChartType = 'line';
@@ -1442,14 +1449,18 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
           label: 'Sys BP',
           borderColor: '#ef4444',
           tension: 0.3,
-          yAxisID: 'y'
+          yAxisID: 'y',
+          pointRadius: data.map(v => (v.bloodPressureSystolic && v.bloodPressureSystolic >= 140) ? 4 : 0),
+          pointBackgroundColor: data.map(v => (v.bloodPressureSystolic && v.bloodPressureSystolic >= 140) ? '#ef4444' : 'transparent')
         },
         {
           data: data.map(v => v.temperature || null),
           label: 'Temp (°C)',
           borderColor: '#f59e0b',
           tension: 0.3,
-          yAxisID: 'y1'
+          yAxisID: 'y1',
+          pointRadius: data.map(v => (v.temperature && v.temperature >= 38) ? 4 : 0),
+          pointBackgroundColor: data.map(v => (v.temperature && v.temperature >= 38) ? '#f59e0b' : 'transparent')
         }
       ]
     };

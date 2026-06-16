@@ -3,6 +3,7 @@ using Healthcare.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 
 namespace Healthcare.API.Controllers
 {
@@ -29,89 +30,51 @@ namespace Healthcare.API.Controllers
             return User.FindFirstValue(ClaimTypes.Role) ?? "";
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateVital([FromBody] CreateVitalDto dto)
+        [HttpPost("record")]
+        public async Task<IActionResult> RecordVital([FromBody] RecordVitalDto dto)
         {
             var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-            
             var role = GetCurrentUserRole();
-            
-            // Patient can only submit if IsHomeReading is true
-            if (role.Equals("Patient", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!dto.IsHomeReading)
-                    return Forbid();
-            }
 
             try
             {
-                var vital = await _vitalService.CreateVitalAsync(dto, userId.Value, role);
-                return CreatedAtAction(nameof(GetVital), new { id = vital.Id }, vital);
+                var vital = await _vitalService.RecordVitalAsync(dto, role, userId);
+                return CreatedAtAction(nameof(GetPatientVitals), new { patient_id = dto.PatientId }, vital);
             }
-            catch (System.ComponentModel.DataAnnotations.ValidationException ex)
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetVital(int id)
+        [HttpGet("{patient_id}")]
+        public async Task<IActionResult> GetPatientVitals(int patient_id, [FromQuery] string metric, [FromQuery] string range = "7d")
         {
-            try
+            if (string.IsNullOrEmpty(metric))
             {
-                var vital = await _vitalService.GetVitalAsync(id);
-                return Ok(vital);
+                return BadRequest(new { message = "Metric query parameter is required." });
             }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateVital(int id, [FromBody] UpdateVitalDto dto)
-        {
-            var userId = GetCurrentUserId();
-            var role = GetCurrentUserRole();
-
-            // Patients cannot edit
-            if (role.Equals("Patient", StringComparison.OrdinalIgnoreCase))
-                return Forbid();
-
-            if (userId == null) return Unauthorized();
 
             try
             {
-                var vital = await _vitalService.UpdateVitalAsync(id, dto, userId.Value);
-                return Ok(vital);
+                var vitals = await _vitalService.GetPatientVitalsAsync(patient_id, metric, range);
+                return Ok(vitals);
             }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (System.ComponentModel.DataAnnotations.ValidationException ex)
+            catch (ArgumentException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
 
-        [HttpPost("{id}/verify")]
-        [Authorize(Roles = "Doctor,doctor")]
-        public async Task<IActionResult> VerifyVital(int id)
+        [HttpGet("latest/{patient_id}")]
+        public async Task<IActionResult> GetLatestVitals(int patient_id)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            try
-            {
-                var vital = await _vitalService.VerifyVitalAsync(id, userId.Value);
-                return Ok(vital);
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
+            var vitals = await _vitalService.GetLatestVitalsAsync(patient_id);
+            return Ok(vitals);
         }
     }
 }

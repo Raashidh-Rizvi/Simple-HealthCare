@@ -273,9 +273,9 @@ namespace Healthcare.API.Controllers
                     Conditions = a.Patient.Conditions,
                     EncounterId = a.Encounter?.Id,
                     EncounterStatus = a.Encounter?.Status,
-                    Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new
+                    Vitals = (a.Encounter?.Vitals ?? new List<PatientVital>()).Select(v => new
                     {
-                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, Weight = v.WeightKg, v.RecordedAt
+                        v.Id, MetricType = v.MetricType.ToString(), v.Value, v.Unit, v.Timestamp
                     }).ToList(),
                     Orders = (a.Encounter?.Orders ?? new List<Order>()).Select(o => new
                     {
@@ -317,9 +317,9 @@ namespace Healthcare.API.Controllers
                     ConsultationFee = a.Doctor.ConsultationFee,
                     EncounterId = a.Encounter?.Id,
                     EncounterStatus = a.Encounter?.Status,
-                    Vitals = (a.Encounter?.Vitals ?? new List<Vital>()).Select(v => new
+                    Vitals = (a.Encounter?.Vitals ?? new List<PatientVital>()).Select(v => new
                     {
-                        v.Id, v.HeartRate, v.BloodPressureSystolic, v.BloodPressureDiastolic, v.Temperature, Weight = v.WeightKg, v.RecordedAt
+                        v.Id, MetricType = v.MetricType.ToString(), v.Value, v.Unit, v.Timestamp
                     }).ToList(),
                     Orders = (a.Encounter?.Orders ?? new List<Order>()).Select(o => new
                     {

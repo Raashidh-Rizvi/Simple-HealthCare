@@ -3,6 +3,7 @@
 This document contains the commands to run the Simple Healthcare Application components.
 
 ## Prerequisites
+
 - **.NET 10 SDK** or later
 - **Node.js** & **Angular CLI**
 - **Flutter SDK**
@@ -12,6 +13,7 @@ This document contains the commands to run the Simple Healthcare Application com
 
 Make sure PostgreSQL is running. We will use it for our Entity Framework Core database.
 If you need to update the database schema based on EF Core migrations, run the following from the `/backend/Healthcare.API` directory:
+
 ```bash
 cd backend/Healthcare.API
 dotnet ef database update
@@ -22,9 +24,11 @@ dotnet ef database update
 The backend runs on `http://localhost:5000` (or `https://localhost:5001`).
 
 ```bash
-cd backend/Healthcare.API
+cd "d:\Project\Simple healthcare\backend\Healthcare.API"
 dotnet run
+
 ```
+
 You can access the Swagger UI documentation at: `http://localhost:5000/swagger`
 
 ## 3. Running the Frontend (Angular)
@@ -36,6 +40,7 @@ cd frontend/healthcare-ui
 npm install
 npm start
 ```
+
 Alternatively, you can run `ng serve`.
 
 ## 4. Running the Mobile App (Flutter)
@@ -53,6 +58,7 @@ flutter run
 ## 5. Full Startup
 
 To start the entire platform simultaneously, you will need three separate terminal windows:
+
 1. **Terminal 1**: Start the backend API (`dotnet run`).
 2. **Terminal 2**: Start the frontend Web UI (`npm start`).
 3. **Terminal 3**: Run the Flutter patient mobile app (`flutter run`).

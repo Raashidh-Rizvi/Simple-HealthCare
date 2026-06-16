@@ -64,11 +64,11 @@ namespace Healthcare.API.Data
                 var doctors = doctorUsers.Select((u, i) => new Doctor
                 {
                     UserId           = u.Id,
-                    Specialization   = specs[i],
-                    LicenseNumber    = $"LIC-{specs[i].ToUpper()[..4]}-{i + 1:D3}",
-                    ExperienceYears  = 5 + i,
-                    ConsultationFee  = 100m + i * 25,
-                    ConsultationType = types[i],
+                    Specialization   = specs[i % specs.Length],
+                    LicenseNumber    = $"LIC-{specs[i % specs.Length].ToUpper()[..4]}-{i + 1:D3}",
+                    ExperienceYears  = 5 + (i % 20),
+                    ConsultationFee  = 100m + (i % 10) * 25,
+                    ConsultationType = types[i % types.Length],
                     Status           = "Active"
                 }).ToList();
                 context.Doctors.AddRange(doctors);
@@ -106,7 +106,7 @@ namespace Healthcare.API.Data
                 {
                     DoctorId    = d.Id,
                     BlockedDate = DateTime.UtcNow.AddDays(30 + i * 7),
-                    Reason      = blockReasons[i]
+                    Reason      = blockReasons[i % blockReasons.Length]
                 }).ToList();
                 context.DoctorBlockedDates.AddRange(blocked);
                 context.SaveChanges();
@@ -132,12 +132,12 @@ namespace Healthcare.API.Data
                 var patients = patientUsers.Select((u, i) => new Patient
                 {
                     UserId      = u.Id,
-                    DateOfBirth = new DateTime(1980 + i, (i % 12) + 1, (i % 28) + 1),
+                    DateOfBirth = new DateTime(1980 + (i % 40), (i % 12) + 1, (i % 28) + 1),
                     PhoneNumber = u.Phone,
-                    Gender      = genders[i],
-                    BloodGroup  = bloods[i],
-                    Allergies   = allergies[i].ToList(),
-                    Conditions  = conditions[i].ToList()
+                    Gender      = genders[i % genders.Length],
+                    BloodGroup  = bloods[i % bloods.Length],
+                    Allergies   = allergies[i % allergies.Length].ToList(),
+                    Conditions  = conditions[i % conditions.Length].ToList()
                 }).ToList();
                 context.Patients.AddRange(patients);
                 context.SaveChanges();
@@ -230,7 +230,7 @@ namespace Healthcare.API.Data
                     ConsultationEndTime    = a.AppointmentDate.Add(a.EndTime),
                     Status                 = "Completed",
                     Notes                  = $"Patient presented with {a.Reason}.",
-                    Diagnosis              = diagnoses[i]
+                    Diagnosis              = diagnoses[i % diagnoses.Length]
                 }).ToList();
                 context.Encounters.AddRange(encounters);
                 context.SaveChanges();
@@ -239,38 +239,62 @@ namespace Healthcare.API.Data
             var seededEncounters = context.Encounters.OrderBy(e => e.Id).ToList();
             var nurseUser        = nurseUsers.FirstOrDefault();
 
-            // ── 10. Vitals (10 rows – one per encounter) ─────────────────────────
-            if (!context.Vitals.Any())
+            // ── 10. Vitals (1000 rows per patient with risk results) ─────────
+            if (context.PatientVitals.Count() < 1000)
             {
-                int[] systolicArr  = { 120,130,118,142,100,125,138,115,128,145 };
-                int[] diastolicArr = {  80, 85,  76, 92, 65, 82,  88, 74, 84, 95 };
-                var vitals = seededEncounters.Select((enc, i) => new Vital
+                var existingVitals = context.PatientVitals.ToList();
+                if (existingVitals.Any())
                 {
-                    EncounterId           = enc.Id,
-                    PatientId             = enc.PatientId,
-                    RecordedById          = nurseUser?.Id,
-                    HeightCm              = 160m + i,
-                    WeightKg              = 60m + i * 2,
-                    BMI                   = Math.Round((60m + i * 2) / (decimal)Math.Pow(((160.0 + i) / 100.0), 2), 2),
-                    Temperature           = 36.5m + (decimal)(i % 3) * 0.3m,
-                    HeartRate             = 72 + i,
-                    RespiratoryRate       = 16 + i % 4,
-                    OxygenSaturation      = 98 - i % 3,
-                    BloodPressureSystolic = systolicArr[i],
-                    BloodPressureDiastolic= diastolicArr[i],
-                    BloodSugar            = 90m + i * 5,
-                    PainScore             = i % 11,
-                    Notes                 = $"Vitals recorded at check-in for encounter {enc.Id}.",
-                    Status                = "Verified",
-                    Source                = "Clinical",
-                    RecordedAt            = enc.CheckInTime ?? DateTime.UtcNow,
-                    VerifiedById          = nurseUser?.Id,
-                    VerifiedAt            = (enc.CheckInTime ?? DateTime.UtcNow).AddMinutes(5),
-                    CreatedAt             = DateTime.UtcNow,
-                    UpdatedAt             = DateTime.UtcNow
-                }).ToList();
-                context.Vitals.AddRange(vitals);
-                context.SaveChanges();
+                    context.PatientVitals.RemoveRange(existingVitals);
+                    context.SaveChanges();
+                }
+
+                var vitals = new List<PatientVital>();
+                var rand = new Random(42);
+                
+                foreach (var patient in seededPatients)
+                {
+                    var baseTime = DateTime.UtcNow.AddDays(-100);
+                    for (int i = 0; i < 1000; i++)
+                    {
+                        var ts = baseTime.AddHours(i * 2.4);
+                        bool isRisk = rand.NextDouble() < 0.05;
+
+                        int sys = rand.Next(110, 130);
+                        int dia = rand.Next(70, 85);
+                        int hr = rand.Next(65, 85);
+                        int spo2 = rand.Next(95, 100);
+                        decimal temp = 36.5m + (decimal)(rand.NextDouble() * 1.0);
+                        decimal weight = 70m + (decimal)(rand.NextDouble() * 2.0);
+                        int respRate = rand.Next(14, 20);
+
+                        if (isRisk)
+                        {
+                            sys = rand.Next(140, 180);
+                            dia = rand.Next(90, 110);
+                            hr = rand.Next(100, 140);
+                            spo2 = rand.Next(85, 92);
+                            temp = 38.0m + (decimal)(rand.NextDouble() * 2.5);
+                            respRate = rand.Next(25, 35);
+                        }
+
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.BP_SYS, Value = sys, Unit = "mmHg", Timestamp = ts, RecordedBy = "Device" });
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.BP_DIA, Value = dia, Unit = "mmHg", Timestamp = ts, RecordedBy = "Device" });
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.HEART_RATE, Value = hr, Unit = "bpm", Timestamp = ts, RecordedBy = "Device" });
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.SPO2, Value = spo2, Unit = "%", Timestamp = ts, RecordedBy = "Device" });
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.TEMP, Value = Math.Round(temp, 1), Unit = "C", Timestamp = ts, RecordedBy = "Device" });
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.WEIGHT, Value = Math.Round(weight, 1), Unit = "kg", Timestamp = ts, RecordedBy = "Device" });
+                        vitals.Add(new PatientVital { PatientId = patient.Id, MetricType = MetricType.RESPIRATORY_RATE, Value = respRate, Unit = "breaths/min", Timestamp = ts, RecordedBy = "Device" });
+                    }
+                }
+                
+                var batchSize = 1000;
+                for (int i = 0; i < vitals.Count; i += batchSize)
+                {
+                    var batch = vitals.GetRange(i, Math.Min(batchSize, vitals.Count - i));
+                    context.PatientVitals.AddRange(batch);
+                    context.SaveChanges();
+                }
             }
 
             // ── 11. Orders (10 rows – one per encounter) ─────────────────────────
@@ -293,8 +317,8 @@ namespace Healthcare.API.Data
                 var orders = seededEncounters.Select((enc, i) => new Order
                 {
                     EncounterId = enc.Id,
-                    OrderType   = orderTypes[i],
-                    Description = descriptions[i],
+                    OrderType   = orderTypes[i % orderTypes.Length],
+                    Description = descriptions[i % descriptions.Length],
                     CreatedAt   = enc.ConsultationEndTime ?? DateTime.UtcNow
                 }).ToList();
                 context.Orders.AddRange(orders);

@@ -15,7 +15,8 @@ namespace Healthcare.API.Data
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<CareProvider> CareProviders { get; set; }
         public DbSet<ScheduleSlot> ScheduleSlots { get; set; }
-        public DbSet<Vital> Vitals { get; set; }
+        public DbSet<PatientVital> PatientVitals { get; set; }
+        public DbSet<PatientVitalAnalytics> PatientVitalAnalytics { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<Encounter> Encounters { get; set; }
         public DbSet<DoctorAvailability> DoctorAvailabilities { get; set; }
@@ -88,50 +89,54 @@ namespace Healthcare.API.Data
                 .HasForeignKey(e => e.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Vital
-            modelBuilder.Entity<Vital>()
+            // PatientVital
+            modelBuilder.Entity<PatientVital>()
                 .HasOne(v => v.Encounter)
                 .WithMany(e => e.Vitals)
                 .HasForeignKey(v => v.EncounterId)
                 .OnDelete(DeleteBehavior.SetNull);
                 
-            modelBuilder.Entity<Vital>()
+            modelBuilder.Entity<PatientVital>()
                 .HasOne(v => v.Patient)
                 .WithMany()
                 .HasForeignKey(v => v.PatientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Vital>()
-                .HasOne(v => v.RecordedBy)
+            modelBuilder.Entity<PatientVital>()
+                .Property(v => v.Value)
+                .HasColumnType("decimal(8,2)");
+                
+            modelBuilder.Entity<PatientVital>()
+                .HasIndex(v => new { v.PatientId, v.Timestamp });
+                
+            modelBuilder.Entity<PatientVital>()
+                .HasIndex(v => v.MetricType);
+
+            // PatientVitalAnalytics
+            modelBuilder.Entity<PatientVitalAnalytics>()
+                .HasOne(a => a.Patient)
                 .WithMany()
-                .HasForeignKey(v => v.RecordedById)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Vital>()
-                .HasOne(v => v.VerifiedBy)
-                .WithMany()
-                .HasForeignKey(v => v.VerifiedById)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Vital>()
-                .Property(v => v.HeightCm)
-                .HasColumnType("decimal(5,2)");
-
-            modelBuilder.Entity<Vital>()
-                .Property(v => v.WeightKg)
-                .HasColumnType("decimal(5,2)");
-
-            modelBuilder.Entity<Vital>()
-                .Property(v => v.BMI)
-                .HasColumnType("decimal(5,2)");
-
-            modelBuilder.Entity<Vital>()
-                .Property(v => v.Temperature)
-                .HasColumnType("decimal(4,2)");
-
-            modelBuilder.Entity<Vital>()
-                .Property(v => v.BloodSugar)
-                .HasColumnType("decimal(6,2)");
+            modelBuilder.Entity<PatientVitalAnalytics>()
+                .Property(a => a.RollingAverage7Day)
+                .HasColumnType("decimal(8,2)");
+                
+            modelBuilder.Entity<PatientVitalAnalytics>()
+                .Property(a => a.TrendSlope)
+                .HasColumnType("decimal(8,2)");
+                
+            modelBuilder.Entity<PatientVitalAnalytics>()
+                .Property(a => a.DeviationFromBaseline)
+                .HasColumnType("decimal(8,2)");
+                
+            modelBuilder.Entity<PatientVitalAnalytics>()
+                .Property(a => a.VariabilityIndex)
+                .HasColumnType("decimal(8,2)");
+                
+            modelBuilder.Entity<PatientVitalAnalytics>()
+                .HasIndex(a => new { a.PatientId, a.MetricType });
 
             // Order
             modelBuilder.Entity<Order>()

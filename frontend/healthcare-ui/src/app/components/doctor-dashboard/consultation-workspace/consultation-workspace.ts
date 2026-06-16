@@ -493,6 +493,10 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
   lineChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
+    elements: {
+      point: { radius: 0, hitRadius: 10, hoverRadius: 5 },
+      line: { borderWidth: 2 }
+    },
     scales: {
       y: { position: 'left', beginAtZero: false },
       y1: { position: 'right', beginAtZero: false, grid: { drawOnChartArea: false } }
@@ -662,14 +666,18 @@ export class ConsultationWorkspaceComponent implements OnInit, OnDestroy {
           label: 'Sys BP',
           borderColor: '#ef4444',
           tension: 0.3,
-          yAxisID: 'y'
+          yAxisID: 'y',
+          pointRadius: data.map(v => (v.bloodPressureSystolic && v.bloodPressureSystolic >= 140) ? 4 : 0),
+          pointBackgroundColor: data.map(v => (v.bloodPressureSystolic && v.bloodPressureSystolic >= 140) ? '#ef4444' : 'transparent')
         },
         {
           data: data.map(v => v.temperature || null),
           label: 'Temp (°C)',
           borderColor: '#f59e0b',
           tension: 0.3,
-          yAxisID: 'y1'
+          yAxisID: 'y1',
+          pointRadius: data.map(v => (v.temperature && v.temperature >= 38) ? 4 : 0),
+          pointBackgroundColor: data.map(v => (v.temperature && v.temperature >= 38) ? '#f59e0b' : 'transparent')
         }
       ]
     };

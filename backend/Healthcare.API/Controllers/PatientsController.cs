@@ -158,5 +158,45 @@ namespace Healthcare.API.Controllers
 
             return Ok(patients);
         }
+        [HttpGet("{patientId}/vitals")]
+        public async Task<IActionResult> GetPatientVitals(int patientId, [FromQuery] string? sourceFilter)
+        {
+            return await GetPatientVitalsHistory(patientId);
+        }
+
+        [HttpGet("{patientId}/vitals/history")]
+        public async Task<IActionResult> GetPatientVitalsHistory(int patientId)
+        {
+            var vitals = await _context.PatientVitals
+                .Where(v => v.PatientId == patientId)
+                .OrderByDescending(v => v.Timestamp)
+                .ToListAsync();
+
+            // Group by minute (or exact timestamp) to flatten metrics into a single object
+            var grouped = vitals.GroupBy(v => v.Timestamp.ToString("yyyy-MM-dd HH:mm"));
+
+            var results = new List<object>();
+            foreach (var g in grouped)
+            {
+                var first = g.First();
+                results.Add(new
+                {
+                    id = first.Id,
+                    patientId = patientId,
+                    recordedAt = first.Timestamp,
+                    source = first.DeviceSource ?? "Clinical",
+                    status = "Verified", // Dummy status for UI
+                    bloodPressureSystolic = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.BP_SYS)?.Value,
+                    bloodPressureDiastolic = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.BP_DIA)?.Value,
+                    heartRate = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.HEART_RATE)?.Value,
+                    temperature = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.TEMP)?.Value,
+                    oxygenSaturation = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.SPO2)?.Value,
+                    weightKg = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.WEIGHT)?.Value,
+                    respiratoryRate = g.FirstOrDefault(v => v.MetricType == Healthcare.API.Models.MetricType.RESPIRATORY_RATE)?.Value,
+                });
+            }
+
+            return Ok(results);
+        }
     }
 }
